@@ -1,0 +1,1 @@
+url_receita_federal = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/"
