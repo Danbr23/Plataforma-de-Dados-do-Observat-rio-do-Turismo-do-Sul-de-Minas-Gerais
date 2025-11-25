@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyo
+*.pyd
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+#Django
+/media/
+staticfiles/
+*.log
+*.pot
+*.mo
+
+#Configuracao sensivel
+.env
+
+#Celery
+celerybeat-schedule
+celerybeat.pid
+
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+data/filtered/2025-07/
+data/raw/2025-07/
+data/stage/2025-07/
+
+downloads/RAIS_ESTAB_PUB_2023_filtrado.csv
+downloads/RAIS_ESTAB_PUB_2023.csv

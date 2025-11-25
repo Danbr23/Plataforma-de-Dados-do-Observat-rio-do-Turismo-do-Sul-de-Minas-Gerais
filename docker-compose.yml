@@ -1,0 +1,87 @@
+services:
+  redis:
+    container_name: redis
+    image: redis:7
+#    ports:
+#      - "6379:6379"
+# nao precisamos mapear uma porta do nosso computador para o redis porque somente quem
+# vai acessar ele sao os outros servicos que estao na mesma rede
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  postgres:
+    container_name: postgres
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+# aqui nos mapeamos uma porta para podermos acessar pelo pgAdmin
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  django:
+    container_name: django
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    image: daniel/django:1.0.0
+    working_dir: /app/otsuldeminas/
+    command: uv run manage.py runserver 0.0.0.0:8000
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+#    environment:
+#      PYTHONDONTWRITEBYTECODE: 1 Ja esta setado no Dockerfile
+#      PYTHONUNBUFFERED: 1
+#      DEBUG: 1 Ja esta no .env que eu passei como paramentro para o env_file
+    depends_on:
+      redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+  
+  celery:
+    container_name: celery
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    image: daniel/celery:1.0.0
+    
+    working_dir: /app/otsuldeminas/
+    command: uv run celery --app=otsuldeminas worker -l INFO 
+
+
+    env_file: .env
+    volumes:
+      - .:/app
+#    environment:
+#      PYTHONDONTWRITEBYTECODE: 1 Ja esta setado no Dockerfile
+#      PYTHONUNBUFFERED: 1
+#      DEBUG: 1 Ja esta no .env que eu passei como paramentro para o env_file
+    depends_on:
+      redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+
+
+volumes:
+  redisdata:
+  pgdata:
