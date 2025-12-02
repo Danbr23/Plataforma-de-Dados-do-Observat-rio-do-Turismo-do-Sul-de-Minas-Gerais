@@ -37,9 +37,5 @@ celerybeat.pid
 .coverage
 htmlcov/
 
-data/filtered/2025-07/
-data/raw/2025-07/
-data/stage/2025-07/
-
-downloads/RAIS_ESTAB_PUB_2023_filtrado.csv
-downloads/RAIS_ESTAB_PUB_2023.csv
+# downloads
+otsuldeminas/data/*
