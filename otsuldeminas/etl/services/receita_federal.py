@@ -83,4 +83,11 @@ def extrair_arquivo_rf(
     arquivo_coletado.path_extraido = str(extract_path)
     arquivo_coletado.status = "EXTRACTED"
     arquivo_coletado.save()
-    return arquivo_coletado        
+    return arquivo_coletado    
+
+def filtrar_arquivo_rf(
+    arquivo_coletado: ArquivoColetado,
+) -> ArquivoColetado:
+    extracted_path = arquivo_coletado.path_extraido
+    
+    
