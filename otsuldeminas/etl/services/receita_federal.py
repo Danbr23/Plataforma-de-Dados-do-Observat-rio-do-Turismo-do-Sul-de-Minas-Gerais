@@ -1,5 +1,6 @@
 import requests
 import os
+import shutil
 from datetime import date
 import pathlib
 from pathlib import Path
@@ -15,15 +16,14 @@ def baixar_arquivo_rf( # baixar receita federal
     nome_arquivo_local: str,
     ano_mes: str,
     id_arquivo,
-) -> bool:
+) -> ArquivoColetado:
     arquivo_coletado = ArquivoColetado.objects.get(id=id_arquivo)
     url = os.path.join(url_receita_federal, ano_mes, nome_arquivo_servidor) # https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-07/estabelecimentos0.zip
     
     path_zip = os.path.join(DATA_DIR, ano_mes)
     os.makedirs(path_zip, exist_ok=True)
     path_zip = os.path.join(path_zip, nome_arquivo_local)
-    arquivo_coletado.path_zip = path_zip
-    
+       
     re = requests.head(url)
     re.raise_for_status() 
     file_size = int(re.headers.get("Content-Length", 0))
@@ -50,8 +50,37 @@ def baixar_arquivo_rf( # baixar receita federal
         print("True")
         arquivo_coletado.bytes = file_size
         arquivo_coletado.status = "DOWNLOADED"
+        arquivo_coletado.path_zip = path_zip
         arquivo_coletado.save()
-        return True
+        return arquivo_coletado
     else:
-        print("False")
-        return False  
+        os.remove(path_zip)
+        raise RuntimeError("Download incompleto ou corrompido")
+
+def extrair_arquivo_rf(
+    arquivo_coletado: ArquivoColetado, 
+) -> pathlib.Path:
+    import zipfile
+
+    extract_path = Path(arquivo_coletado.path_zip).with_suffix(".csv")  # remove .zip
+    #os.makedirs(extract_path, exist_ok=True)
+
+    with zipfile.ZipFile(arquivo_coletado.path_zip, 'r') as zip_ref:
+        #zip_ref.extractall(extract_path)       
+        target = None
+        for info in zip_ref.infolist():
+            name = info.filename
+            if any(tipo in name for tipo in ['ESTABELE', 'SOCIO']):
+                target = name
+                break
+        if not target:
+            raise RuntimeError("Arquivo útil não encontrado dentro do zip")
+
+        with zip_ref.open(target) as zin, extract_path.open("wb") as fout:
+            shutil.copyfileobj(zin, fout)
+
+
+    arquivo_coletado.path_extraido = str(extract_path)
+    arquivo_coletado.status = "EXTRACTED"
+    arquivo_coletado.save()
+    return arquivo_coletado        

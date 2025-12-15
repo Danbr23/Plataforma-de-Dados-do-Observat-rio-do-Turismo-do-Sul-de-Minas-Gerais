@@ -19,13 +19,29 @@ def task_coletar_arquivo_rf(
     self,
     nome_arquivo_servidor : str,
     ):
+    
     ano_mes = str(date.today())[0:7] # '2025-07'
-    nome_arquivo_local = nome_arquivo_servidor[:len(nome_arquivo_servidor)-4] + "_" + ano_mes + ".zip"
-    arquivo_coletado, _ = ArquivoColetado.objects.get_or_create(nome=nome_arquivo_local, ano=int(ano_mes[:4]), mes=int(ano_mes[5:7]))
+    nome_arquivo_local = (
+        nome_arquivo_servidor[: len(nome_arquivo_servidor) - 4] 
+        + "_" 
+        + ano_mes 
+        + ".zip"
+    )
+    arquivo_coletado, _ = ArquivoColetado.objects.get_or_create(
+        nome=nome_arquivo_local,
+        ano=int(ano_mes[:4]),
+        mes=int(ano_mes[5:7])
+    )
     arquivo_coletado.status = "PENDING"
     arquivo_coletado.save()
     try:
-        baixar_arquivo_rf(nome_arquivo_servidor=nome_arquivo_servidor, nome_arquivo_local=nome_arquivo_local, ano_mes=ano_mes, id_arquivo=arquivo_coletado.id)
+        arquivo_coletado = baixar_arquivo_rf(
+                                nome_arquivo_servidor=nome_arquivo_servidor,
+                                nome_arquivo_local=nome_arquivo_local,
+                                ano_mes=ano_mes,
+                                id_arquivo=arquivo_coletado.id
+                            )
+        return arquivo_coletado
         
     except (Timeout, ConnectionError, SoftTimeLimitExceeded):
         # Essas exceções são tratadas pelo autoretry_for automaticamente
@@ -37,5 +53,16 @@ def task_coletar_arquivo_rf(
             raise self.retry(
             countdown= 7 * 24 * 60 * 60,  # tenta de novo em uma semana
             max_retries=4,           # tenta por um mes
-        ) 
-        
+        )
+    except RuntimeError as e:
+        print(e)
+        raise self.retry(
+            countdown= 5 * 60,  # tenta de novo em 10 minutos
+            max_retries=5,           
+        )
+    except Exception as e:
+        print(e)
+        raise self.retry(
+            countdown= 10 * 60,  # tenta de novo em 10 minutos
+            max_retries=5,           
+        )
