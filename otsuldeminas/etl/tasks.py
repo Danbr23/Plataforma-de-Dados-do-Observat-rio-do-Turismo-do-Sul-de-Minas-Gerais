@@ -2,7 +2,7 @@ from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 from requests.exceptions import Timeout, ConnectionError, RequestException, HTTPError
 from datetime import date
-from .services.receita_federal import baixar_arquivo_rf
+from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf
 from .models import ArquivoColetado
 
 
@@ -66,3 +66,21 @@ def task_coletar_arquivo_rf(
             countdown= 10 * 60,  # tenta de novo em 10 minutos
             max_retries=5,           
         )
+        
+@shared_task(
+    bind=True,
+)
+def task_extrair_arquivo_rf(
+    self,
+    arquivoColetado : ArquivoColetado,
+):
+    try:
+        extrair_arquivo_rf(arquivoColetado)
+        return arquivoColetado
+    except RuntimeError as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+
