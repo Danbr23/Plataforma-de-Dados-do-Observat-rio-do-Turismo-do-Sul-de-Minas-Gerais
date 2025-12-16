@@ -36,4 +36,5 @@ dependencies = [
     "django-filter>=25.1",
     "django-celery-beat>=2.8.1",
     "django-celery-results>=2.6.0",
+    "charset-normalizer>=3.4.3",
 ]

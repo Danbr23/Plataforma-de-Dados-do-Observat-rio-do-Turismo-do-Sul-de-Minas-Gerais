@@ -1,24 +1,38 @@
 import requests
 import os
+import charset_normalizer
 import shutil
+import csv
 from datetime import date
 import pathlib
 from pathlib import Path
 from django.conf import settings
-from etl.models import ArquivoColetado
+from etl.models import CNAE, ArquivoColetado, Municipio
+from etl.consts import SELECT_ORDER, IDX
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)
 DATA_DIR = BASE_DIR / "data" / "receita_federal"
 url_receita_federal = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/"
 
+def _lista_codigo_municipios_rf() -> set[str]:
+    # cache leve por processo
+    if not hasattr(_lista_codigo_municipios_rf, "_cache"):
+        _lista_codigo_municipios_rf._cache = set(Municipio.objects.values_list("codigo_receita_federal", flat=True))
+    return _lista_codigo_municipios_rf._cache
+
+def _lista_codigos_cnae() -> set[str]:
+    if not hasattr(_lista_codigos_cnae, "_cache"):
+        _lista_codigos_cnae._cache = set(CNAE.objects.values_list("codigo", flat=True))
+    return _lista_codigos_cnae._cache
+
+
 def baixar_arquivo_rf( # baixar receita federal
     nome_arquivo_servidor: str,
     nome_arquivo_local: str,
     ano_mes: str,
-    id_arquivo,
+    arquivo_coletado: ArquivoColetado,
 ) -> ArquivoColetado:
-    arquivo_coletado = ArquivoColetado.objects.get(id=id_arquivo)
-    url = os.path.join(url_receita_federal, ano_mes, nome_arquivo_servidor) # https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-07/estabelecimentos0.zip
+    url = os.path.join(url_receita_federal, ano_mes, nome_arquivo_servidor) # https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-07/Estabelecimentos0.zip
     
     path_zip = os.path.join(DATA_DIR, ano_mes)
     os.makedirs(path_zip, exist_ok=True)
@@ -89,5 +103,52 @@ def filtrar_arquivo_rf(
     arquivo_coletado: ArquivoColetado,
 ) -> ArquivoColetado:
     extracted_path = arquivo_coletado.path_extraido
+    
+    if arquivo_coletado.nome.startswith("Estabelecimentos"):
+        lista_codigo_municipios_rf = _lista_codigo_municipios_rf()
+        lista_codigos_cnae = _lista_codigos_cnae()
+        col_idx = IDX["Estabelecimentos"] 
+        filtered_path = Path(extracted_path).with_name(f"filtrado_{Path(extracted_path).name}")
+        total_out = 0
+        #detectar encoding do arquivo extraído
+        with open(extracted_path, "rb") as rawdata:
+            result = charset_normalizer.detect(rawdata.read(1000000))
+            encoding = result['encoding'] or "latin-1"
+            print(encoding)
+
+        with open(extracted_path, "r", encoding=encoding, newline="") as fin, filtered_path.open("w", encoding="utf-8", newline="") as fout:
+            reader = csv.reader(fin, delimiter=";")
+            writer = csv.writer(fout, delimiter=";")
+            # header do bronze filtrado
+            writer.writerow(SELECT_ORDER[0])
+            for row in reader:
+                # alguns dumps vêm SEM header; se detectar header, pule
+                if row and row[0].upper().startswith("CNPJ"):
+                    continue
+                try:
+                    mun = int(row[col_idx["codigo_municipio_rf"]])
+                    cnae = str(row[col_idx["cnae_fiscal_principal"]])[:5]
+                    #if total_out % 1000000 == 0:
+                        #print(cnae)
+                except Exception:
+                    continue
+                if mun in lista_codigo_municipios_rf and cnae in lista_codigos_cnae:
+                    #print("Esta")
+#                    municipio = Municipio.objects.get(codigo_receita_federal = mun)
+                    out_row = [
+                        row[col_idx[col]]
+                        for col in SELECT_ORDER[0]
+                    ]
+
+                    #out_row = [row[col_idx[col]] if col != "mes" else mes for col in sel]
+
+                    writer.writerow(out_row)
+                    total_out += 1
+
+        arquivo_coletado.path_filtrado = str(filtered_path)
+        arquivo_coletado.linhas_filtradas = total_out
+        arquivo_coletado.status = "FILTERED"
+        arquivo_coletado.save(update_fields=["path_filtrado", "linhas_filtradas", "status"])
+        return arquivo_coletado
     
     

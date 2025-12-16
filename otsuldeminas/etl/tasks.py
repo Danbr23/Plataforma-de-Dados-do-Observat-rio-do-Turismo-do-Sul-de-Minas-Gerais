@@ -39,7 +39,7 @@ def task_coletar_arquivo_rf(
                                 nome_arquivo_servidor=nome_arquivo_servidor,
                                 nome_arquivo_local=nome_arquivo_local,
                                 ano_mes=ano_mes,
-                                id_arquivo=arquivo_coletado.id
+                                arquivo_coletado=arquivo_coletado
                             )
         return arquivo_coletado
         
