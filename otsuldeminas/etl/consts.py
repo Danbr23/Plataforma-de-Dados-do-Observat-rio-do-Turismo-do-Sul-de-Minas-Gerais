@@ -104,7 +104,8 @@ IDX = {
 
 }
 SELECT_ORDER = [
-        [
+        [   
+            "cnpj_completo",
             "cnpj_basico",
             "cnpj_ordem",
             "cnpj_dv",

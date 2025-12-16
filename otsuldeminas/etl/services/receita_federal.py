@@ -136,7 +136,8 @@ def filtrar_arquivo_rf(
                     #print("Esta")
 #                    municipio = Municipio.objects.get(codigo_receita_federal = mun)
                     out_row = [
-                        row[col_idx[col]]
+                        (str(row[0]) + str(row[1]) + str(row[2])) if col == "cnpj_completo" 
+                        else row[col_idx[col]]
                         for col in SELECT_ORDER[0]
                     ]
 
@@ -150,5 +151,4 @@ def filtrar_arquivo_rf(
         arquivo_coletado.status = "FILTERED"
         arquivo_coletado.save(update_fields=["path_filtrado", "linhas_filtradas", "status"])
         return arquivo_coletado
-    
     
