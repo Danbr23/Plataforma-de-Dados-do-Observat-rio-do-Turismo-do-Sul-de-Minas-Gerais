@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ArquivoColetado, Municipio, CNAE
+from .models import ArquivoColetado, Municipio, CNAE, Estabelecimento
 # Register your models here.
 @admin.register(ArquivoColetado)
 class ArquivoColetadoAdmin(admin.ModelAdmin):
@@ -38,3 +38,8 @@ class CNAEAdmin(admin.ModelAdmin):
     list_display = ("descricao", "codigo", "classificacao_otmg")
     search_fields = ("codigo", "descricao", "classificacao_otmg")
     ordering = ("codigo",)
+
+@admin.register(Estabelecimento)
+class EstabelecimentoAdmin(admin.ModelAdmin):
+    list_display = ("cnpj_basico","codigo_municipio_rf", "nome_fantasia")
+    list_per_page = 25
