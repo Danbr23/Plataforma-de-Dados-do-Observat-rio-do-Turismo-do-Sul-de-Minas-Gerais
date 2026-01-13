@@ -67,7 +67,7 @@ services:
     image: daniel/celery:1.0.0
     
     working_dir: /app/otsuldeminas/
-    command: uv run celery --app=otsuldeminas worker -l INFO 
+    command: uv run celery --app=otsuldeminas worker -l INFO -E
 
 
     env_file: .env

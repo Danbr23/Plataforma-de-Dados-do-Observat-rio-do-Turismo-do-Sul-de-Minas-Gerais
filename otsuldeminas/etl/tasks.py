@@ -1,8 +1,8 @@
-from celery import shared_task
+from celery import shared_task, chain, chord
 from celery.exceptions import SoftTimeLimitExceeded
 from requests.exceptions import Timeout, ConnectionError, RequestException, HTTPError
 from datetime import date
-from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf
+from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf, filtrar_arquivo_rf, carregar_arquivo_rf
 from .models import ArquivoColetado
 
 
@@ -15,12 +15,12 @@ from .models import ArquivoColetado
     retry_jitter=True,    # adiciona aleatoriedade nesses tempos
     retry_kwargs={"max_retries": 10},
 )
-def task_coletar_arquivo_rf(
+def task_baixar_arquivo_rf(
     self,
     nome_arquivo_servidor : str,
+    ano_mes: str,
     ):
-    
-    ano_mes = str(date.today())[0:7] # '2025-07'
+            
     nome_arquivo_local = (
         nome_arquivo_servidor[: len(nome_arquivo_servidor) - 4] 
         + "_" 
@@ -41,7 +41,7 @@ def task_coletar_arquivo_rf(
                                 ano_mes=ano_mes,
                                 arquivo_coletado=arquivo_coletado
                             )
-        return arquivo_coletado
+        return arquivo_coletado.id
         
     except (Timeout, ConnectionError, SoftTimeLimitExceeded):
         # Essas exceções são tratadas pelo autoretry_for automaticamente
@@ -72,11 +72,12 @@ def task_coletar_arquivo_rf(
 )
 def task_extrair_arquivo_rf(
     self,
-    arquivoColetado : ArquivoColetado,
+    id_arquivoColetado : int,
 ):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
     try:
-        extrair_arquivo_rf(arquivoColetado)
-        return arquivoColetado
+        arquivoColetado = extrair_arquivo_rf(arquivoColetado)
+        return arquivoColetado.id
     except RuntimeError as e:
         print(e)
         arquivoColetado.status = "ERROR"
@@ -84,3 +85,74 @@ def task_extrair_arquivo_rf(
         arquivoColetado.save()
         raise
 
+@shared_task(
+    bind=True,
+)
+def task_filtrar_dados_rf(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        arquivoColetado = filtrar_arquivo_rf(arquivoColetado)
+        return arquivoColetado.id
+    except RuntimeError as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg += "\n"
+        arquivoColetado.msg += str(e)
+        arquivoColetado.save()
+        raise
+
+@shared_task(
+    bind=True,
+)
+def task_carregar_dados_rf(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        arquivoColetado = carregar_arquivo_rf(arquivoColetado)
+        return arquivoColetado.id
+    except RuntimeError as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg += "\n"
+        arquivoColetado.msg += str(e)
+        arquivoColetado.save()
+        raise
+    
+@shared_task(
+    bind=True,
+)
+def task_coletar_arquivo_rf(
+    self,
+    nome_arquivo_servidor : str,
+    **kwargs,
+    ):
+    
+    if "data" in kwargs:
+        ano_mes = kwargs["data"]
+    else:
+        ano_mes = str(date.today())[0:7] # '2025-07'
+    
+    id_arquivo_coletado = task_baixar_arquivo_rf(
+                            nome_arquivo_servidor=nome_arquivo_servidor,
+                            ano_mes=ano_mes,
+                        )
+    ch = chain(
+        task_extrair_arquivo_rf.si(id_arquivo_coletado),
+        task_filtrar_dados_rf.s(),
+        task_carregar_dados_rf.s(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta do arquivo {id_arquivo_coletado} disparada: {async_result.id}")
+    
+    
+@shared_task
+def task_teste(**kwargs):
+    if "opa" in kwargs:
+        return f"Teste OK! opa={kwargs['opa']}"
+    return "Nenhum parâmetro recebido."
+    
