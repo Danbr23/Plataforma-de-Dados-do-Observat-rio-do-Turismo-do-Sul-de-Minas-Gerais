@@ -80,6 +80,29 @@ services:
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
+  
+  beat:
+    container_name: beat
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    image: daniel/beat:1.0.0
+    
+    working_dir: /app/otsuldeminas/
+    command: uv run celery --app=otsuldeminas beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+    env_file: .env
+    volumes:
+      - .:/app
+#    environment:
+#      PYTHONDONTWRITEBYTECODE: 1 Ja esta setado no Dockerfile
+#      PYTHONUNBUFFERED: 1
+#      DEBUG: 1 Ja esta no .env que eu passei como paramentro para o env_file
+    depends_on:
+      redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }    
 
 
 volumes:
