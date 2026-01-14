@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'etl',
+    'rais',
     'django_celery_beat',
     'django_celery_results',
 ]
