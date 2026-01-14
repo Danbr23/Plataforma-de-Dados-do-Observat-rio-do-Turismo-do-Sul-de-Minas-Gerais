@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rais',
     'django_celery_beat',
     'django_celery_results',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

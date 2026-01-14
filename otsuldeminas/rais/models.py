@@ -1,3 +1,45 @@
 from django.db import models
 
+class ArquivoColetado(models.Model):
+    ARQ_STATUS = [
+        ("PENDING", "Pendente"),
+        ("DOWNLOADED", "Baixado"),
+        ("EXTRACTED", "Extraído"),
+        ("FILTERED", "Filtrado"),
+        ("LOADED", "Carregado"),
+        ("FAILED", "Falhou"),
+    ]
+    id = models.BigAutoField(primary_key=True)
+    nome = models.CharField(max_length=50, default="")
+    ano = models.IntegerField(default=0)
+    mes = models.IntegerField(default=0)
+    path_zip = models.TextField(blank=True, default="")
+    path_extraido= models.TextField(blank=True, default="")
+    path_filtrado= models.TextField(blank=True, default="")
+    #sha256 = models.CharField(max_length=64, blank=True, default="")
+    bytes = models.BigIntegerField(default=0)
+    status = models.CharField(max_length=10, choices=ARQ_STATUS, default="PENDING")
+    linhas_filtradas = models.BigIntegerField(default=0)
+    msg = models.TextField(blank=True, default="")
+    expected_bytes = models.BigIntegerField(blank=True, null=True)
+
+    class Meta:
+        #unique_together = [("coleta", "nome")]
+        ordering = ["nome"]
+
+    # def progresso_pct(self) -> float | None:
+    #     if self.expected_bytes and self.bytes:
+    #         return round(self.bytes / self.expected_bytes * 100, 1)
+    #     return None
+    def __str__(self):
+        return f"{self.nome}.zip"
+
 # Create your models here.
+class VinculosAtivos(models.Model):
+    municipio=  models.ForeignKey('etl.Municipio', on_delete=models.CASCADE)
+    cnae = models.ForeignKey('etl.CNAE', to_field='codigo', on_delete=models.CASCADE)
+    subclasse_cnae = models.CharField(max_length=7)
+    data = models.DateField()
+    quantidade = models.IntegerField(default=0)
+    
+    
