@@ -1,6 +1,6 @@
 import csv
 from django.core.management.base import BaseCommand, CommandError
-from etl.models import Municipio
+from cadastros.models import Municipio
 
 class Command(BaseCommand):
     help = "Carrega data/municipios_sul_mg.csv para a tabela municipios"

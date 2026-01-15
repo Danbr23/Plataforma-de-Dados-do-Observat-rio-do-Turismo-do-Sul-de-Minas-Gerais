@@ -1,6 +1,6 @@
 import csv
 from django.core.management.base import BaseCommand, CommandError
-from etl.models import CNAE
+from cadastros.models import CNAE
 
 class Command(BaseCommand):
     help = "Carrega data/cnae.csv para a tabela CNAE"

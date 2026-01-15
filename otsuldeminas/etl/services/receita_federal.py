@@ -7,7 +7,9 @@ from datetime import date, datetime
 import pathlib
 from pathlib import Path
 from django.conf import settings
-from etl.models import CNAE, ArquivoColetado, Municipio, Estabelecimento
+from etl.models import ArquivoColetado
+from cadastros.models import CNAE, Municipio
+from receita_federal.models import Estabelecimento
 from etl.consts import SELECT_ORDER, IDX
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)

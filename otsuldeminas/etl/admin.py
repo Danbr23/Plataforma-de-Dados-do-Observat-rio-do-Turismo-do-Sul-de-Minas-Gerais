@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import ArquivoColetado, Municipio, CNAE, Estabelecimento
+from .models import ArquivoColetado
+
 # Register your models here.
 @admin.register(ArquivoColetado)
 class ArquivoColetadoAdmin(admin.ModelAdmin):
@@ -26,20 +27,3 @@ class ArquivoColetadoAdmin(admin.ModelAdmin):
     def expected_fmt(self, obj: ArquivoColetado):
         return f"{obj.expected_bytes:,}".replace(",", ".") if obj.expected_bytes else "-"
 
-@admin.register(Municipio)
-class MunicipioAdmin(admin.ModelAdmin):
-    list_display = ("nome","codigo_ibge","codigo_receita_federal")
-    list_filter = ("nome",)
-    search_fields = ("nome", "codigo_ibge","codigo_receita_federal")
-    ordering = ("nome",)
-
-@admin.register(CNAE)
-class CNAEAdmin(admin.ModelAdmin):
-    list_display = ("descricao", "codigo", "classificacao_otmg")
-    search_fields = ("codigo", "descricao", "classificacao_otmg")
-    ordering = ("codigo",)
-
-@admin.register(Estabelecimento)
-class EstabelecimentoAdmin(admin.ModelAdmin):
-    list_display = ("cnpj_basico","codigo_municipio_rf", "nome_fantasia")
-    list_per_page = 25

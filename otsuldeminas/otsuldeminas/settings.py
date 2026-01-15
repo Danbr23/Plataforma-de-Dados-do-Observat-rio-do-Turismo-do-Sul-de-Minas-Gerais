@@ -38,11 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'etl',
-    'rais',
     'django_celery_beat',
     'django_celery_results',
     'django_extensions',
+    'etl',
+    'rais',
+    'cadastros',
+    'receita_federal',
 ]
 
 MIDDLEWARE = [
