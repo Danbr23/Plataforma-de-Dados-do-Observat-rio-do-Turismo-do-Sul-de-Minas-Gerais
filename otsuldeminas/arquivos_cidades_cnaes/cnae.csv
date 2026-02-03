@@ -1,38 +1,38 @@
 codigo,descricao,otmg
-79110,Agências de Viagens,Agência e Operadores
-79120,Operadores Turísticos,Agência e Operadores
-79902,Serviços de Reservas e Outros Serviços de Turismo não Especificados,Agência e Operadores
+79112,Agências de Viagens,Agência e Operadores
+79121,Operadores Turísticos,Agência e Operadores
+79902,Serviços de Reservas e Outros Serviços de Turismo não Especificados Anteriormente,Agência e Operadores
 56112,Restaurantes e Outros Estabelecimentos de Serviços de Alimentação e Bebidas,Alimentação
 56121,Serviços Ambulantes de Alimentação,Alimentação
 56201,"Serviços de Catering, Buffet e Outros Serviços de Comida Preparada",Alimentação
-47610,Comércio Varejista de Artigos Recreativos e Esportivos,Comércio e Serviços
-47637,Comércio Varejista de Calçados e Artigos de Viagem,Comércio e Serviços
-47890,Comércio Varejista de Outros Produtos Novos não Especificados,Comércio e Serviços
-65201,Seguros Não-Vida,Comércio e Serviços
+47636,Comércio Varejista de Artigos Recreativos e Esportivos,Comércio e Serviços
+47822,Comércio Varejista de Calçados e Artigos de Viagem,Comércio e Serviços
+47890,Comércio Varejista de Outros Produtos Novos não Especificados Anteriormente,Comércio e Serviços
+65120,Seguros Não-Vida,Comércio e Serviços
 55108,Hotéis e Similares,Hospedagem
 55906,Outros Tipos de Alojamento não Especificados,Hospedagem
 77217,Aluguel de Equipamentos Recreativos e Esportivos,Entretenimento
 82300,"Atividades de Organização de Eventos, Exceto Culturais e Esportivos",Entretenimento
-82999,Atividades de Serviços Prestados Principalmente às Empresas não Especificadas,Entretenimento
+82997,Atividades de Serviços Prestados Principalmente às Empresas não Especificadas Anteriormente,Entretenimento
 74200,Atividades Fotográficas e Similares,Entretenimento
-59111,Atividades de Edição Cinematográfica,Entretenimento
+59146,Atividades de Exibição Cinematográfica,Entretenimento
 90019,"Artes Cênicas, Espetáculos e Atividades Complementares",Entretenimento
-90027,"Gestão de Espaços para Artes Cênicas, Espetáculos e Outras Atividades Artísticas",Entretenimento
-93199,Atividades Esportivas não Especificadas,Entretenimento
+90035,"Gestão de Espaços para Artes Cênicas, Espetáculos e Outras Atividades Artísticas",Entretenimento
+93191,Atividades Esportivas não Especificadas Anteriormente,Entretenimento
 93212,Parques de Diversão e Parques Temáticos,Entretenimento
-93298,Atividades de Recreação e Lazer não Especificadas,Entretenimento
+93298,Atividades de Recreação e Lazer não Especificadas Anteriormente,Entretenimento
 91023,"Atividades de Museus e de Exploração, Restauração Artística e Conservação de Lugares e Prédios Históricos",Entretenimento
 91031,"Atividades de Jardins Botânicos, Zoológicos, Parques Nacionais, Reservas Ecológicas e Áreas de Proteção Ambiental",Entretenimento
 77110,Locação de Automóveis sem Condutor,Transportes
 77195,"Locação de Meios de Transporte, Exceto Automóveis, sem Condutor",Transportes
-52290,Atividades Auxiliares dos Transportes Terrestres não Especificadas,Transportes
-52220,Atividades Auxiliares dos Transportes Aéreos,Transportes
-51111,Transporte Aéreo de Passageiros Não-Regular,Transportes
-51120,Transporte Aéreo de Passageiros Regular,Transportes
-50998,Transporte Aquaviário não Especificado,Transportes
-49230,Transporte Metroferroviário de Passageiros,Transportes
-49221,"Transporte Rodoviário Coletivo de Passageiros, com Itinerário Fixo, Municipal e em Região Metropolitana",Transportes
-49248,"Transporte Rodoviário Coletivo de Passageiros, com Itinerário Fixo, Intermunicipal, Interestadual e Internacional",Transportes
+52290,Atividades Auxiliares dos Transportes Terrestres não Especificadas Anteriormente,Transportes
+52401,Atividades Auxiliares dos Transportes Aéreos,Transportes
+51129,Transporte Aéreo de Passageiros Não-Regular,Transportes
+51111,Transporte Aéreo de Passageiros Regular,Transportes
+50998,Transporte Aquaviário não Especificado Anteriormente,Transportes
+49124,Transporte Metroferroviário de Passageiros,Transportes
+49213,"Transporte Rodoviário Coletivo de Passageiros, com Itinerário Fixo, Municipal e em Região Metropolitana",Transportes
+49221,"Transporte Rodoviário Coletivo de Passageiros, com Itinerário Fixo, Intermunicipal, Interestadual e Internacional",Transportes
 49299,"Transporte Rodoviário Coletivo de Passageiros, Sob Regime de Fretamento, e Outros Transportes Rodoviários não Especificados",Transportes
-49302,Transporte Rodoviário de Táxi,Transportes
+49230,Transporte Rodoviário de Táxi,Transportes
 49507,"Trens Turísticos, Teleféricos e Similares",Transportes

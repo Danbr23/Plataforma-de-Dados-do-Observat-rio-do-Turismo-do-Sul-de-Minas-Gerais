@@ -14,7 +14,7 @@ class Municipio(models.Model):
 
 
 class CNAE(models.Model):
-    codigo = models.CharField(max_length=5, unique=True)  # ex.: "56112"
+    codigo = models.CharField(max_length=5,  primary_key=True, unique=True)  # ex.: "56112"
     descricao = models.TextField()
     classificacao_otmg = models.TextField(blank=True, null=True)
     class Meta:

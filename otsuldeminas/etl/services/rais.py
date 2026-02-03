@@ -1,11 +1,17 @@
 from ftplib import FTP
 from django.conf import settings
+from django.db.models import F
 from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
-import py7zr
+from rais.models import VinculosAtivos, Saldo
 import os
+import py7zr
 import pathlib
 import pandas as pd
+import calendar
+from datetime import date
+from itertools import product
+
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)
 DATA_DIR = BASE_DIR / "data" / "rais"
@@ -102,6 +108,87 @@ def filtrar_rais(arquivoColetado : ArquivoColetado):
     
             break
     print("filtrou")
+    
+def popular_rais(ano):
+    municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
+    cnaes_codigos = CNAE.objects.values_list('codigo',flat=True)
+    meses = range(1,13)
+    
+    combinacoes = product(municipios_codigos, cnaes_codigos, meses)
+    
+    objetos_rais = []
+    
+    ultimos_dias = {
+        mes: calendar.monthrange(ano,mes)[1]
+        for mes in meses
+    }
+    
+    for m_id, c_id, mes in combinacoes:
+        objetos_rais.append(
+            Saldo(
+                municipio_id = m_id,
+                cnae_id = c_id,
+                referencia = date(ano, mes, ultimos_dias[mes])
+            )
+        )
+    
+    Saldo.objects.bulk_create(objetos_rais, batch_size=2000)
 
+def carregar_rais(arquivoColetado : ArquivoColetado):
 
+    ano = arquivoColetado.ano
+    
+    meses = range(1,13)
+    ultimos_dias = {
+        mes: calendar.monthrange(ano,mes)[1]
+        for mes in meses
+    }
+    
+    path_filtrado = arquivoColetado.path_filtrado
+    
+    df = pd.read_csv(path_filtrado, encoding="utf-8", dtype=str)
+    
+    for idx, row in df.iterrows():
+        municipio_ibge = row[df.columns[20]]
+        cnae_codigo = row[df.columns[30]][0:5]
+        mes_admissao = int(row[df.columns[17]])
+        mes_desligamento = int(row[df.columns[18]])
+        
+        if mes_admissao != 0:
+            data_referencia = date(int(ano), int(mes_admissao), ultimos_dias[mes_admissao])          
+        
+            try:
+                municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
+                cnae = CNAE.objects.get(codigo=cnae_codigo)
+                
+                updated = Saldo.objects.filter(
+                    municipio = municipio,
+                    cnae = cnae,
+                    referencia = data_referencia
+                ).update(saldo = F("saldo") + 1)
+                
+            except Exception:
+                print("Algo deu errado")
+        
+        if mes_desligamento != 0:
+            data_referencia = date(int(ano), int(mes_desligamento), ultimos_dias[mes_desligamento])          
+        
+            try:
+                municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
+                cnae = CNAE.objects.get(codigo=cnae_codigo)
+                
+                updated = Saldo.objects.filter(
+                    municipio = municipio,
+                    cnae = cnae,
+                    referencia = data_referencia
+                ).update(saldo = F("saldo") - 1)
+                
+            except Exception as e:
+                print(cnae_codigo)
+                print(e)
+                raise
+    
+    
+    
+    print("carregou")
     
