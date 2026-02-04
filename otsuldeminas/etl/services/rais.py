@@ -39,12 +39,13 @@ def baixar_rais(arquivoColetado : ArquivoColetado) -> str:
     
     ftp.quit()
     
-    arquivoColetado.path_zip = path_zip_file_local
-    arquivoColetado.bytes = os.path.getsize(path_zip_file_local)
-    arquivoColetado.save()
-    
     if os.path.getsize(path_zip_file_local) != tamanho:
         raise RuntimeError(f"Erro no download do arquivo {zip_file_remote} do ano {ano}: tamanho incorreto.")
+
+    arquivoColetado.path_zip = path_zip_file_local
+    arquivoColetado.bytes = os.path.getsize(path_zip_file_local)
+    arquivoColetado.status = "DOWNLOADED"
+    arquivoColetado.save()
     
     with py7zr.SevenZipFile(path_zip_file_local, mode='r') as z:
         nome = z.getnames()[0]
@@ -58,13 +59,16 @@ def baixar_rais(arquivoColetado : ArquivoColetado) -> str:
 
     os.rename(txt_file_local, csv_path)
     arquivoColetado.path_extraido = str(csv_path)
+    os.remove(arquivoColetado.path_zip)
+    arquivoColetado.path_zip = ""
+    arquivoColetado.status = "EXTRACTED"
     arquivoColetado.save()
     #os.remove(zip_file_local)
 
-    return f"RAIS_ESTAB_PUB.csv: {ano}"
+    return f"{csv_path.name}: {ano}"
 
 
-def filtrar_rais(arquivoColetado : ArquivoColetado):
+def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
     
     
     lista_ibge = list(Municipio.objects.values_list("codigo_ibge", flat=True))
@@ -109,7 +113,12 @@ def filtrar_rais(arquivoColetado : ArquivoColetado):
             break
     print("filtrou")
     
-def popular_rais(ano):
+    os.remove(arquivoColetado.path_extraido)
+    arquivoColetado.path_extraido = ""
+    arquivoColetado.status = "FILTERED"
+    arquivoColetado.save()
+    
+def popular_saldo(ano):
     municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
     cnaes_codigos = CNAE.objects.values_list('codigo',flat=True)
     meses = range(1,13)
@@ -134,9 +143,10 @@ def popular_rais(ano):
     
     Saldo.objects.bulk_create(objetos_rais, batch_size=2000)
 
-def carregar_rais(arquivoColetado : ArquivoColetado):
+def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
 
     ano = arquivoColetado.ano
+    popular_saldo(ano)
     
     meses = range(1,13)
     ultimos_dias = {
@@ -189,6 +199,7 @@ def carregar_rais(arquivoColetado : ArquivoColetado):
                 raise
     
     
-    
+    arquivoColetado.status = "LOADED"
+    arquivoColetado.save()
     print("carregou")
     

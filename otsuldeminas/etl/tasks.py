@@ -3,7 +3,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from requests.exceptions import Timeout, ConnectionError, RequestException, HTTPError
 from datetime import date
 from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf, filtrar_arquivo_rf, carregar_arquivo_rf
-from .services.rais import baixar_rais
+from .services.rais import baixar_rais, filtrar_vinc_pub, carregar_vinc_pub
 from .models import ArquivoColetado
 
 @shared_task(
@@ -173,7 +173,7 @@ def task_baixar_rais(
     arquivo_coletado.save()
     try:
         mensagem = baixar_rais(arquivoColetado=arquivo_coletado)
-        arquivo_coletado.status = "DOWNLOADED"
+        #arquivo_coletado.status = "DOWNLOADED"
         arquivo_coletado.msg = mensagem
         arquivo_coletado.save()
         return arquivo_coletado.id
@@ -183,3 +183,65 @@ def task_baixar_rais(
         arquivo_coletado.msg = str(e)
         arquivo_coletado.save()
         raise    
+
+@shared_task(
+    bind=True,
+)
+def task_filtrar_vinc_pub(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        filtrar_vinc_pub(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+    
+@shared_task(
+    bind=True,
+)
+def task_carregar_vinc_pub(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        carregar_vinc_pub(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+
+# RAIS_VINC_PUB_MG_ES_RJ.7z    
+@shared_task(
+    bind=True,
+)
+def task_coletar_vinc_pub(
+    self,
+    nome_arquivo_servidor : str,
+    **kwargs,
+    ):
+    
+    if "ano" in kwargs:
+        ano = kwargs["ano"]
+    else:
+        ano = str(date.today().year)
+    
+    id_arquivo_coletado = task_baixar_rais(
+                            ano=ano,
+                            nome_arquivo_servidor=nome_arquivo_servidor,
+                        )
+    ch = chain(
+        task_filtrar_vinc_pub.si(id_arquivo_coletado),
+        task_carregar_vinc_pub.s(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta do arquivo RAIS {nome_arquivo_servidor} disparada: {async_result.id}")
