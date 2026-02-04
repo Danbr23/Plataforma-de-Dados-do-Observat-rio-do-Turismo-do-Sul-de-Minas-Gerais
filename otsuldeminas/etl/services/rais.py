@@ -117,6 +117,58 @@ def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
     arquivoColetado.path_extraido = ""
     arquivoColetado.status = "FILTERED"
     arquivoColetado.save()
+
+def filtrar_estab_pub(arquivoColetado : ArquivoColetado):
+    
+    
+    lista_ibge = list(Municipio.objects.values_list("codigo_ibge", flat=True))
+     
+    path_extraido = arquivoColetado.path_extraido
+    ano = str(arquivoColetado.ano)
+    
+    chunk_size = 100000
+    #primeiro = True
+    saida = pathlib.Path(path_extraido).with_name(f"FILTRADO_RAIS_ESTABELECIMENTOS_{ano}.csv")
+    arquivoColetado.path_filtrado = str(saida)
+    arquivoColetado.save()
+    
+    cnaes = tuple(cnae for cnae in list(CNAE.objects.values_list("codigo", flat=True)))
+    
+    if arquivoColetado.ano <= 2022:
+        chunks = pd.read_csv(path_extraido, encoding="latin1", chunksize=chunk_size, dtype=str, sep=';')
+        # cnaes = tuple(cnae for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
+    else:
+        # cnaes = tuple(cnae[0:4] for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
+        chunks = pd.read_csv(path_extraido, encoding="latin1", chunksize=chunk_size, dtype=str)
+    
+    #colunas_indejesadas = ['Bairros SP','Bairros Fortaleza','Bairros RJ', 'CNAE 95 Classe', 'Distritos SP', 'Regiões Adm DF']
+    colunas_indejesadas = [0,1,2,5,16]
+    
+    
+    chunk = next(chunks)
+    
+    chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
+    # mask = chunk["Município - Código"].isin(lista_ibge) & chunk["CNAE 2.0 Classe - Código"].isin(cnaes)
+    mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str[0:5].isin(cnaes)
+    filtrado = chunk[mask]
+    filtrado.to_csv(saida, mode="w", index=False, header=True, encoding="utf-8")
+    
+    while True:
+        try:
+            chunk = next(chunks)
+            chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
+            mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str[0:5].isin(cnaes)
+            filtrado = chunk[mask]
+            filtrado.to_csv(saida, mode="a", index=False, header=False, encoding="utf-8")
+        except StopIteration:
+    
+            break
+    print("filtrou")
+    
+    os.remove(arquivoColetado.path_extraido)
+    arquivoColetado.path_extraido = ""
+    arquivoColetado.status = "FILTERED"
+    arquivoColetado.save()
     
 def popular_saldo(ano):
     municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
@@ -142,6 +194,28 @@ def popular_saldo(ano):
         )
     
     Saldo.objects.bulk_create(objetos_rais, batch_size=2000)
+
+def popular_vinculos_ativos(ano):
+    municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
+    cnaes_codigos = CNAE.objects.values_list('codigo',flat=True)
+    ultimo_mes = [12]
+    
+    combinacoes = product(municipios_codigos, cnaes_codigos, ultimo_mes)
+    
+    objetos_rais = []
+    
+    ultimo_dia = 31
+    
+    for m_id, c_id, mes in combinacoes:
+        objetos_rais.append(
+            VinculosAtivos(
+                municipio_id = m_id,
+                cnae_id = c_id,
+                referencia = date(ano, mes, ultimo_dia)
+            )
+        )
+    
+    VinculosAtivos.objects.bulk_create(objetos_rais, batch_size=2000)
 
 def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
 
@@ -202,4 +276,33 @@ def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
     arquivoColetado.status = "LOADED"
     arquivoColetado.save()
     print("carregou")
+
+def carregar_estab_pub(arquivoColetado : ArquivoColetado):
+
+    ano = arquivoColetado.ano
+    popular_vinculos_ativos(ano)
     
+    mes = 12
+    ultimo_dia = 31
+    data_referencia = date(ano, mes, ultimo_dia)
+    path_filtrado = arquivoColetado.path_filtrado
+    
+    df = pd.read_csv(path_filtrado, encoding="utf-8", dtype=str)
+    
+    for idx, row in df.iterrows():
+        municipio_ibge = row[df.columns[10]]
+        cnae_codigo = row[df.columns[12]][0:5]
+        qtd_vinculos_ativos = int(row[df.columns[3]])
+        
+        municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
+        cnae = CNAE.objects.get(codigo=cnae_codigo)
+        
+        updated = VinculosAtivos.objects.filter(
+            municipio = municipio,
+            cnae = cnae,
+            referencia = data_referencia
+        ).update(quantidade = F("quantidade") + qtd_vinculos_ativos)
+        
+    arquivoColetado.status = "LOADED"
+    arquivoColetado.save()
+    print("carregou")
