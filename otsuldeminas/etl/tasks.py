@@ -4,6 +4,7 @@ from requests.exceptions import Timeout, ConnectionError, RequestException, HTTP
 from datetime import date
 from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf, filtrar_arquivo_rf, carregar_arquivo_rf
 from .services.rais import baixar_rais, filtrar_vinc_pub, carregar_vinc_pub, filtrar_estab_pub, carregar_estab_pub
+from .services.caged import baixar_caged, filtrar_caged, carregar_caged_mov, carregar_caged_for, carregar_caged_exc
 from .models import ArquivoColetado
 
 @shared_task(
@@ -307,3 +308,193 @@ def task_coletar_estab_pub(
     )
     async_result = ch.apply_async()
     print(f"Coleta do arquivo RAIS {nome_arquivo_servidor} disparada: {async_result.id}")
+
+@shared_task(
+    bind=True,
+)
+def task_baixar_caged(
+    self,
+    ano: int,
+    mes: int,
+    nome_arquivo_servidor : str,
+    ):
+           
+    arquivo_coletado, _ = ArquivoColetado.objects.get_or_create(
+        nome=nome_arquivo_servidor,
+        ano=ano,
+        mes=mes,
+    )
+    arquivo_coletado.status = "PENDING"
+    arquivo_coletado.save()
+    try:
+        mensagem = baixar_caged(arquivoColetado=arquivo_coletado)
+        #arquivo_coletado.status = "DOWNLOADED"
+        arquivo_coletado.msg = mensagem
+        arquivo_coletado.save()
+        return arquivo_coletado.id
+        
+    except Exception as e:
+        arquivo_coletado.status = "FAILED"
+        arquivo_coletado.msg = str(e)
+        arquivo_coletado.save()
+        raise
+
+@shared_task(
+    bind=True,
+)
+def task_filtrar_caged(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        filtrar_caged(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+
+@shared_task(
+    bind=True,
+)
+def task_carregar_caged_mov(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        carregar_caged_mov(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+    
+@shared_task(
+    bind=True,
+)
+def task_carregar_caged_for(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        carregar_caged_for(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+
+@shared_task(
+    bind=True,
+)
+def task_carregar_caged_exc(
+    self,
+    id_arquivoColetado : int,
+):
+    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+    try:
+        carregar_caged_exc(arquivoColetado)
+        return arquivoColetado.id
+    except Exception as e:
+        print(e)
+        arquivoColetado.status = "ERROR"
+        arquivoColetado.msg = str(e)
+        arquivoColetado.save()
+        raise
+    
+@shared_task(
+    bind=True,
+)
+def task_coletar_caged_mov(
+    self,
+    ano: int,
+    mes: int,
+):
+    
+    id_arquivo_coletado = task_baixar_caged(
+                            ano=ano,
+                            mes=mes,
+                            nome_arquivo_servidor=f"CAGEDMOV",
+                        )
+    ch = chain(
+        task_filtrar_caged.si(id_arquivo_coletado),
+        task_carregar_caged_mov.s(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta do arquivo CAGED MOV {ano}-{mes} disparada: {async_result.id}")  
+
+@shared_task(
+    bind=True,
+)
+def task_coletar_caged_for(
+    self,
+    ano: int,
+    mes: int,
+):
+
+    id_arquivo_coletado = task_baixar_caged(
+                            ano=ano,
+                            mes=mes,
+                            nome_arquivo_servidor=f"CAGEDFOR",
+                        )
+    ch = chain(
+        task_filtrar_caged.si(id_arquivo_coletado),
+        task_carregar_caged_for.s(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta do arquivo CAGED FOR {ano}-{mes} disparada: {async_result.id}")
+
+@shared_task(
+    bind=True,
+)
+def task_coletar_caged_exc(
+    self,
+    ano: int,
+    mes: int,
+):
+
+    id_arquivo_coletado = task_baixar_caged(
+                            ano=ano,
+                            mes=mes,
+                            nome_arquivo_servidor=f"CAGEDEXC",
+                        )
+    ch = chain(
+        task_filtrar_caged.si(id_arquivo_coletado),
+        task_carregar_caged_exc.s(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta do arquivo CAGED EXC {ano}-{mes} disparada: {async_result.id}")
+
+@shared_task(
+    bind=True,
+)
+def task_coletar_arquivos_caged(
+        self,
+        **kwargs,
+):
+    if "ano" in kwargs:
+        ano = kwargs["ano"]
+    else:
+        ano = date.today().year
+        
+    if "mes" in kwargs:
+        mes = kwargs["mes"]
+    else:        
+        mes = date.today().month
+        
+    ch = chain(
+        task_coletar_caged_mov.si(ano=ano, mes=mes),
+        task_coletar_caged_for.si(ano=ano, mes=mes),
+        task_coletar_caged_exc.si(ano=ano, mes=mes),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta dos arquivos CAGED {ano}-{mes} disparada: {async_result.id}")    
