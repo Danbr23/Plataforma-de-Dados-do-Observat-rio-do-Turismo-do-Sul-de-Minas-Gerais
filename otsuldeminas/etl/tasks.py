@@ -263,7 +263,6 @@ def task_carregar_estab_pub(
 )
 def task_coletar_vinc_pub(
     self,
-    nome_arquivo_servidor : str,
     **kwargs,
     ):
     
@@ -274,22 +273,21 @@ def task_coletar_vinc_pub(
     
     id_arquivo_coletado = task_baixar_rais(
                             ano=ano,
-                            nome_arquivo_servidor=nome_arquivo_servidor,
+                            nome_arquivo_servidor="RAIS_VINC_PUB_MG_ES_RJ.7z",
                         )
     ch = chain(
         task_filtrar_vinc_pub.si(id_arquivo_coletado),
         task_carregar_vinc_pub.s(),
     )
     async_result = ch.apply_async()
-    print(f"Coleta do arquivo RAIS {nome_arquivo_servidor} disparada: {async_result.id}")
+    print(f"Coleta do arquivo RAIS RAIS_VINC_PUB_MG_ES_RJ.7z disparada: {async_result.id}")
     
-# RAIS_VINC_PUB_MG_ES_RJ.7z    
+# RAIS_ESTAB_PUB.7z   
 @shared_task(
     bind=True,
 )
 def task_coletar_estab_pub(
     self,
-    nome_arquivo_servidor : str,
     **kwargs,
     ):
     
@@ -300,14 +298,14 @@ def task_coletar_estab_pub(
     
     id_arquivo_coletado = task_baixar_rais(
                             ano=ano,
-                            nome_arquivo_servidor=nome_arquivo_servidor,
+                            nome_arquivo_servidor="RAIS_ESTAB_PUB.7z",
                         )
     ch = chain(
         task_filtrar_estab_pub.si(id_arquivo_coletado),
         task_carregar_estab_pub.s(),
     )
     async_result = ch.apply_async()
-    print(f"Coleta do arquivo RAIS {nome_arquivo_servidor} disparada: {async_result.id}")
+    print(f"Coleta do arquivo RAIS RAIS_ESTAB_PUB.7z disparada: {async_result.id}")
 
 @shared_task(
     bind=True,
@@ -440,12 +438,18 @@ def task_coletar_caged_for(
     ano: int,
     mes: int,
 ):
-
-    id_arquivo_coletado = task_baixar_caged(
-                            ano=ano,
-                            mes=mes,
-                            nome_arquivo_servidor=f"CAGEDFOR",
-                        )
+    try:
+        id_arquivo_coletado = task_baixar_caged(
+                                ano=ano,
+                                mes=mes,
+                                nome_arquivo_servidor=f"CAGEDFOR",
+                            )
+    except Exception as e:
+        if(str(e).startswith("550")): # arquivo não encontrado
+            print(f"Arquivo CAGED FOR {ano}-{mes} não encontrado. Pulando etapa de coleta.")
+            return None
+        else:
+            raise e
     ch = chain(
         task_filtrar_caged.si(id_arquivo_coletado),
         task_carregar_caged_for.s(),
@@ -461,18 +465,33 @@ def task_coletar_caged_exc(
     ano: int,
     mes: int,
 ):
-
-    id_arquivo_coletado = task_baixar_caged(
-                            ano=ano,
-                            mes=mes,
-                            nome_arquivo_servidor=f"CAGEDEXC",
-                        )
-    ch = chain(
-        task_filtrar_caged.si(id_arquivo_coletado),
-        task_carregar_caged_exc.s(),
-    )
+    try:
+        id_arquivo_coletado = task_baixar_caged(
+                                ano=ano,
+                                mes=mes,
+                                nome_arquivo_servidor=f"CAGEDEXC",
+                            )
+        ch = chain(
+            task_filtrar_caged.si(id_arquivo_coletado),
+            task_carregar_caged_exc.s(),
+        )
+    except Exception as e:
+        if(str(e).startswith("550")): # arquivo não encontrado
+            print(f"Arquivo CAGED EXC {ano}-{mes} não encontrado. Pulando etapa de coleta.")
+            return None
+        else:
+            raise e
+        
     async_result = ch.apply_async()
     print(f"Coleta do arquivo CAGED EXC {ano}-{mes} disparada: {async_result.id}")
+
+@shared_task(
+    bind=True,
+)
+def task_finalizar_coleta_caged(
+        self,
+    ):
+    print("Coleta dos arquivos CAGED finalizada.")
 
 @shared_task(
     bind=True,
@@ -495,6 +514,7 @@ def task_coletar_arquivos_caged(
         task_coletar_caged_mov.si(ano=ano, mes=mes),
         task_coletar_caged_for.si(ano=ano, mes=mes),
         task_coletar_caged_exc.si(ano=ano, mes=mes),
+        task_finalizar_coleta_caged.si(),
     )
     async_result = ch.apply_async()
     print(f"Coleta dos arquivos CAGED {ano}-{mes} disparada: {async_result.id}")    

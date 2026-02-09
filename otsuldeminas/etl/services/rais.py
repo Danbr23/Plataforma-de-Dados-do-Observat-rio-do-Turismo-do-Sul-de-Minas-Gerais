@@ -97,7 +97,7 @@ def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
     
     chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
     # mask = chunk["Município - Código"].isin(lista_ibge) & chunk["CNAE 2.0 Classe - Código"].isin(cnaes)
-    mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False)
+    mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False) & chunk[chunk.columns[17]].str.isdigit() & chunk[chunk.columns[18]].str.isdigit()
     filtrado = chunk[mask]
     filtrado.to_csv(saida, mode="w", index=False, header=True, encoding="utf-8")
     
@@ -105,7 +105,7 @@ def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
         try:
             chunk = next(chunks)
             chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
-            mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False)
+            mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False) & chunk[chunk.columns[17]].str.isdigit() & chunk[chunk.columns[18]].str.isdigit()
             filtrado = chunk[mask]
             filtrado.to_csv(saida, mode="a", index=False, header=False, encoding="utf-8")
         except StopIteration:

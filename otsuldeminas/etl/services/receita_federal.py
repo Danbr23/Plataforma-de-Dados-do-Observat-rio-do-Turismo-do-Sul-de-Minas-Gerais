@@ -11,10 +11,12 @@ from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
 from receita_federal.models import Estabelecimento
 from etl.consts import SELECT_ORDER, IDX
+from bs4 import BeautifulSoup 
+from requests.exceptions import HTTPError
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)
 DATA_DIR = BASE_DIR / "data" / "receita_federal"
-url_receita_federal = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/"
+url_casa_dos_dados = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/"
 
 def _lista_codigo_municipios_rf() -> set[str]:
     # cache leve por processo
@@ -38,7 +40,29 @@ def baixar_arquivo_rf( # baixar receita federal
     ano_mes: str,
     arquivo_coletado: ArquivoColetado,
 ) -> ArquivoColetado:
-    url = os.path.join(url_receita_federal, ano_mes, nome_arquivo_servidor) # https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-07/Estabelecimentos0.zip
+    
+    response = requests.get(url_casa_dos_dados)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    print(f"Procurando pastas em: {url_casa_dos_dados}\n")
+    url_pasta = None
+    # Varre todos os links da página
+    for link in soup.find_all('a'):
+      href = link.get('href')
+   
+      # Verifica se o link existe e começa com o padrão desejado
+      if href and href.startswith(ano_mes):
+          print(f"Pasta encontrada: {href}")
+   
+          # Se você quiser montar a URL completa para usar depois:
+          url_pasta = url_casa_dos_dados + href
+          print(f"URL para acesso: {url_pasta}")
+    
+    if not url_pasta:
+        response = requests.Response()
+        response.status_code = 404
+        raise HTTPError(f"Pasta para ano_mes {ano_mes} não encontrada em {url_casa_dos_dados}", response=response)
+    
+    url = os.path.join(url_pasta, nome_arquivo_servidor) # https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-07/Estabelecimentos0.zip
     
     path_zip = os.path.join(DATA_DIR, ano_mes)
     os.makedirs(path_zip, exist_ok=True)
@@ -102,6 +126,8 @@ def extrair_arquivo_rf(
 
     arquivo_coletado.path_extraido = str(extract_path)
     arquivo_coletado.status = "EXTRACTED"
+    os.remove(arquivo_coletado.path_zip)
+    arquivo_coletado.path_zip = ""
     arquivo_coletado.save()
     return arquivo_coletado    
 
@@ -120,6 +146,8 @@ def filtrar_arquivo_rf(
         with open(extracted_path, "rb") as rawdata:
             result = charset_normalizer.detect(rawdata.read(1000000))
             encoding = result['encoding'] or "latin-1"
+            if encoding.lower() == "ascii":
+                encoding = "latin-1"
             print(encoding)
 
         with open(extracted_path, "r", encoding=encoding, newline="") as fin, filtered_path.open("w", encoding="utf-8", newline="") as fout:
@@ -155,7 +183,9 @@ def filtrar_arquivo_rf(
         arquivo_coletado.path_filtrado = str(filtered_path)
         arquivo_coletado.linhas_filtradas = total_out
         arquivo_coletado.status = "FILTERED"
-        arquivo_coletado.save(update_fields=["path_filtrado", "linhas_filtradas", "status"])
+        os.remove(arquivo_coletado.path_extraido)
+        arquivo_coletado.path_extraido = ""
+        arquivo_coletado.save()
         return arquivo_coletado
 
 def carregar_arquivo_rf(
