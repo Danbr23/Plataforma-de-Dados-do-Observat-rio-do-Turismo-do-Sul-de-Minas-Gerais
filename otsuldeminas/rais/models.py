@@ -14,6 +14,7 @@ class VinculosAtivos(models.Model):
         
         indexes = [
             models.Index(fields=['municipio', 'cnae', 'referencia']),
+            models.Index(fields=['municipio', 'cnae']),
         ]
     
 class Saldo(models.Model):

@@ -13,3 +13,18 @@ class MunicipioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Municipio
         fields = '__all__'
+
+class SaldoModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Saldo
+        fields = ['referencia','saldo']
+        
+class SaldoSerializer(serializers.Serializer):
+    mes = serializers.CharField()
+    saldo = serializers.DecimalField(max_digits=18,decimal_places=2)
+    
+    def to_representation(self,instance):
+        mes = instance["mes"]
+        if hasattr(mes,"date"):
+            mes = mes.date()
+        return {"mes": f"{mes.year:04d}-{mes.month:02d}", "saldo": instance["saldo"]}

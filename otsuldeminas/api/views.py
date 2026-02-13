@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import EstabelecimentoSerializer, MunicipioSerializer
+from .serializers import EstabelecimentoSerializer, MunicipioSerializer, SaldoSerializer
 from receita_federal.models import Estabelecimento
 from cadastros.models import Municipio
-from .services import get_municipio, qtd_estabelecimentos
-
+from .services import *
+from .utils import *
 
 # Create your views here.
 # Create your views here.
@@ -31,6 +31,27 @@ class SummaryView(APIView):
         
         return Response(response)
 
-    
-    
+class SaldoView(APIView):
+    def get(self, request, codigo_ibge, data_inicio,data_fim):
         
+        saldos = resgatar_saldo(codigo_ibge=codigo_ibge, data_inicio=data_inicio,data_fim=data_fim)
+        #print(saldos)
+        #serializer = SaldoSerializer(saldos, many=True)
+        return Response(saldos)
+
+class QtdEstabelecimentos(APIView):
+    
+    def get(self,request):
+        response = qtd_Estabelecimentos_Resumido()
+        return CSVExporterResumo.export(response,"estabelecimentos.csv")
+
+class FuncionariosPorMunicipioPorCNAE(APIView):
+    
+    def get(self,request):
+        response = service_funcionarios_por_municipio_por_cnae()
+        return CSVExporterResumo.export(response,"funcionarios.csv")
+
+# class PostosDeTrabalho(APIView):
+#     def get(self,request):
+#         response = service_postos_de_trabalho()
+#         return CSVExporterTemporalSaldo.export(response,"postos.csv")
