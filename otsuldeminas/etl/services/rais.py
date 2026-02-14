@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models import F
 from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
-from rais.models import EstoqueAnual, SaldoMensal
+from rais.models import EstoqueAnual, SaldoMensal, EstoqueMensal
 import os
 import py7zr
 import pathlib
@@ -15,6 +15,10 @@ from itertools import product
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)
 DATA_DIR = BASE_DIR / "data" / "rais"
+
+def gerar_ultimo_dia(ano, mes):
+    _, ultimo_dia = calendar.monthrange(ano, mes)
+    return date(ano,mes,ultimo_dia)
 
 def baixar_rais(arquivoColetado : ArquivoColetado) -> str:
     ano = str(arquivoColetado.ano)
@@ -62,10 +66,11 @@ def baixar_rais(arquivoColetado : ArquivoColetado) -> str:
     os.remove(arquivoColetado.path_zip)
     arquivoColetado.path_zip = ""
     arquivoColetado.status = "EXTRACTED"
+    arquivoColetado.msg = f"{csv_path.name}: {ano}"
     arquivoColetado.save()
     #os.remove(zip_file_local)
 
-    return f"{csv_path.name}: {ano}"
+    return True
 
 
 def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
@@ -301,8 +306,37 @@ def carregar_estab_pub(arquivoColetado : ArquivoColetado):
             municipio = municipio,
             cnae = cnae,
             referencia = data_referencia
-        ).update(quantidade = F("quantidade") + qtd_vinculos_ativos)
+        ).update(estoque = F("estoque") + qtd_vinculos_ativos)
         
     arquivoColetado.status = "LOADED"
     arquivoColetado.save()
     print("carregou")
+
+def carregar_saldos_mensais(year:int):
+    ano_anterior = year - 1
+    estoques_anuais = EstoqueAnual.objects.filter(referencia__year = ano_anterior)
+    saldos_mensais = SaldoMensal.objects.filter(referencia__year = year)
+    
+    for estoque in estoques_anuais:
+        for mes in range(1,13):
+        
+            data = gerar_ultimo_dia(year,mes)
+            if mes == 1:
+                            
+                saldo = saldos_mensais.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                qtd = estoque.estoque + saldo.saldo
+                estq = EstoqueMensal.objects.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                estq.estoque = qtd
+                estq.save(update_fields=["estoque"])
+                
+            elif mes == 12:
+                estoque_desse_ano = EstoqueAnual.objects.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                estq = EstoqueMensal.objects.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                estq.estoque = estoque_desse_ano.estoque
+                estq.save(update_fields=["estoque"])
+            else:
+                saldo = saldos_mensais.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                qtd += saldo.saldo
+                estq = EstoqueMensal.objects.get(municipio = estoque.municipio, cnae = estoque.cnae, referencia = data)
+                estq.estoque = qtd
+                estq.save(update_fields=["estoque"])

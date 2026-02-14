@@ -9,6 +9,7 @@ urlpatterns = [
     path("saldo/<str:codigo_ibge>/inicio/<str:data_inicio>/fim/<str:data_fim>/", SaldoMensalView.as_view()),
     path("estabelecimentos_csv/", QtdEstabelecimentos.as_view()),
     path("funcionarios_csv/",FuncionariosPorMunicipioPorCNAE.as_view()),
-   # path("postos_de_trabalho_csv/",PostosDeTrabalho.as_view())
+    path("postos_de_trabalho_csv/",PostosDeTrabalho.as_view()),
+    path("estoque_acumulado_csv/", EstoqueAcumuladoView.as_view())
 ]
 

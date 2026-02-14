@@ -51,7 +51,12 @@ class FuncionariosPorMunicipioPorCNAE(APIView):
         response = service_funcionarios_por_municipio_por_cnae()
         return CSVExporterResumo.export(response,"funcionarios.csv")
 
-# class PostosDeTrabalho(APIView):
-#     def get(self,request):
-#         response = service_postos_de_trabalho()
-#         return CSVExporterTemporalSaldo.export(response,"postos.csv")
+class PostosDeTrabalho(APIView):
+    def get(self,request):
+        response = service_postos_de_trabalho()
+        return CSVExporterTemporalSaldo.export(response,"postos.csv")
+    
+class EstoqueAcumuladoView(APIView):
+    def get(self,request):
+        response = service_estoque_acumulado()
+        return CSVExporterTemporalEstoque.export(response,"estoque_acumulado.csv")

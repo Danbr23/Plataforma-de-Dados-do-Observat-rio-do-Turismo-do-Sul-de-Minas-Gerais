@@ -5,7 +5,7 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Max, Min
 from datetime import date
 import calendar
-from rais.models import SaldoMensal, EstoqueAnual
+from rais.models import SaldoMensal, EstoqueAnual, EstoqueMensal
 from caged.models import SaldoMensalCaged
 from django.db.models import Count
 
@@ -136,7 +136,7 @@ def service_funcionarios_por_municipio_por_cnae():
         for row in vinculos:
             nome_municipio = row.municipio.nome
             classificacao = row.cnae.classificacao_otmg or "Outros"
-            total_rais = row.quantidade
+            total_rais = row.estoque
             
             caged_filtrado = cageds.filter(municipio = row.municipio, cnae = row.cnae)
             total_caged = caged_filtrado.aggregate(soma=Sum("saldo_caged"))["soma"]
@@ -156,7 +156,7 @@ def service_funcionarios_por_municipio_por_cnae():
         for row in vinculos:
             nome_municipio = row.municipio.nome
             classificacao = row.cnae.classificacao_otmg or "Outros"
-            total_rais = row.quantidade
+            total_rais = row.estoque
             
             data.setdefault(nome_municipio, {}).setdefault(classificacao, 0)
             data[nome_municipio][classificacao] += total_rais
@@ -203,31 +203,26 @@ def service_postos_de_trabalho():
             
     return data
 
-# def service_estoque_acumulado():
+def service_estoque_acumulado():
     
-#     inicio = EstoqueAnual.objects.aggregate(Min("referencia__year"))["referencia__year__min"]
-#     fim = EstoqueAnual.objects.aggregate(Max("referencia__year"))["referencia__year__max"]
+    estoques = EstoqueMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
     
-    
-#     rais = (
-#         EstoqueAnual.objects
-#         .values('municipio__nome', 'cnae__classificacao_otmg', 'referencia')
-#         .annotate(total_quantidade=Sum('quantidade'))
-#         .order_by("referencia")
-#         )
-    
-#     cageds = (
-#         SaldoMensalCaged.objects
-#         .filter(referencia__year__gt = fim)
-#         .values('municipio__nome', 'cnae__classificacao_otmg', 'referencia')
-#         .annotate(total_quantidade=Sum('saldo_caged'))
-#         .order_by("referencia")
-#         )
-           
-#     agregados = {}
-    
-#     for ano in range(inicio, fim+1):
-#         for row in rais.filter(referencia__year=ano):
-#             agregados[row[municipio__nome]][row[classificacao]][ano][mes] += row.saldo
-            
+    agregados = {}
+    for row in estoques:
+        nome = row.municipio.nome
+        classificacao = row.cnae.classificacao_otmg or "Outros"
+        ano = row.referencia.year
+        mes = row.referencia.month
         
+        agregados.setdefault(nome, {}).setdefault(classificacao, {}).setdefault(ano, {}).setdefault(mes, 0)
+        agregados[nome][classificacao][ano][mes] += row.estoque
+    
+    data = {}
+    for municipio, classes in agregados.items():
+        data[municipio] = {}
+        for classificacao, anos in classes.items():
+            data[municipio][classificacao] = {}
+            for ano, meses in anos.items():
+                data[municipio][classificacao][ano] = [ {"mes": mes, "estoque": estoque} for mes, estoque in sorted(meses.items()) ]
+    
+    return data

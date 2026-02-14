@@ -51,3 +51,31 @@ class CSVExporterTemporalSaldo:
         response = HttpResponse(buffer.getvalue(), content_type="text/csv")
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+    
+class CSVExporterTemporalEstoque:
+    """
+    Exporta séries temporais de estoque CAGED
+    (município × classificação × mês × estoque)
+    """
+    @staticmethod
+    def export(data: dict, filename: str = "postos_trabalho.csv"):
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["Município", "Classificação", "Ano", "Mês", "Estoque"])
+
+        for municipio, classificacoes in data.items():
+            for classificacao, anos in classificacoes.items():
+                for ano, meses in anos.items():
+                    
+                    for registro in meses:
+                        writer.writerow([
+                            municipio,
+                            classificacao,
+                            ano,
+                            registro["mes"],
+                            registro["estoque"]
+                        ])
+
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = f"attachment; filename={filename}"
+        return response

@@ -4,6 +4,7 @@ from django.db.models import F
 from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
 from caged.models import SaldoMensalCaged
+from rais.models import EstoqueAnual, EstoqueMensal
 import os
 import py7zr
 import pathlib
@@ -14,6 +15,10 @@ from itertools import product
 
 BASE_DIR = pathlib.Path(settings.BASE_DIR)
 DATA_DIR = BASE_DIR / "data" / "caged"
+
+def gerar_ultimo_dia(ano, mes):
+    _, ultimo_dia = calendar.monthrange(ano, mes)
+    return date(ano,mes,ultimo_dia)
 
 def baixar_caged(arquivoColetado: ArquivoColetado):
     ano = str(arquivoColetado.ano)
@@ -69,10 +74,11 @@ def baixar_caged(arquivoColetado: ArquivoColetado):
     os.remove(arquivoColetado.path_zip)
     arquivoColetado.path_zip = ""
     arquivoColetado.status = "EXTRACTED"
+    arquivoColetado.msg = f"{csv_path.name}: {ano}"
     arquivoColetado.save()
     #os.remove(zip_file_local)
 
-    return f"{csv_path.name}: {ano}"
+    return True
 
 def filtrar_caged(arquivoColetado: ArquivoColetado):
     
@@ -208,3 +214,22 @@ def carregar_caged_exc(arquivoColetado: ArquivoColetado):
     arquivoColetado.status = "LOADED"
     arquivoColetado.save()
     print("carregou")
+
+def carregar_saldos_mensais_temporarios(year:int, month:int):
+    ano_estoque_anual_mais_recente = EstoqueAnual.objects.order_by("-referencia").first().referencia.year
+    mes_atual = gerar_ultimo_dia(year,month)
+    if month == 1:
+        mes_anterior = date(year - 1, 12, 31)
+    else:
+        mes_anterior = gerar_ultimo_dia(year, month - 1)
+    
+    if EstoqueMensal.objects.filter(referencia = mes_anterior).exists():
+    # if (year > ano_estoque_anual_mais_recente) and (EstoqueMensal.objects.filter(referencia = mes_anterior).exists()):
+        estoques_mes_anterior = EstoqueMensal.objects.filter(referencia = mes_anterior)
+        saldos_mensais_caged = SaldoMensalCaged.objects.filter(referencia = mes_atual)
+        for estoque in estoques_mes_anterior:
+            saldo = saldos_mensais_caged.get(municipio = estoque.municipio, cnae = estoque.cnae)
+            qtd = estoque.estoque + saldo.saldo_caged
+            EstoqueMensal.objects.create(municipio = estoque.municipio, cnae = estoque.cnae, referencia  = mes_atual, estoque = qtd)
+    else:
+        return "O ano passado eh menor do que o rais atual ou nao ha estoque para o mes anterior"

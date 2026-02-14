@@ -173,89 +173,86 @@ def task_baixar_rais(
     arquivo_coletado.status = "PENDING"
     arquivo_coletado.save()
     try:
-        mensagem = baixar_rais(arquivoColetado=arquivo_coletado)
-        #arquivo_coletado.status = "DOWNLOADED"
-        arquivo_coletado.msg = mensagem
-        arquivo_coletado.save()
-        return arquivo_coletado.id
-        
+        baixar_rais(arquivoColetado=arquivo_coletado)      
     except Exception as e:
         arquivo_coletado.status = "FAILED"
         arquivo_coletado.msg = str(e)
         arquivo_coletado.save()
-        raise    
-
-@shared_task(
-    bind=True,
-)
-def task_filtrar_vinc_pub(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        filtrar_vinc_pub(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
-
-@shared_task(
-    bind=True,
-)
-def task_filtrar_estab_pub(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        filtrar_estab_pub(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
+        raise   
     
-@shared_task(
-    bind=True,
-)
-def task_carregar_vinc_pub(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        carregar_vinc_pub(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
+    return arquivo_coletado.id 
 
-@shared_task(
-    bind=True,
-)
-def task_carregar_estab_pub(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        carregar_estab_pub(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
+# @shared_task(
+#     bind=True,
+# )
+# def task_filtrar_vinc_pub(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         filtrar_vinc_pub(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+
+# @shared_task(
+#     bind=True,
+# )
+# def task_filtrar_estab_pub(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         filtrar_estab_pub(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+    
+# @shared_task(
+#     bind=True,
+# )
+# def task_carregar_vinc_pub(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         carregar_vinc_pub(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+
+# @shared_task(
+#     bind=True,
+# )
+# def task_carregar_estab_pub(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         carregar_estab_pub(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
 
 # RAIS_VINC_PUB_MG_ES_RJ.7z    
 @shared_task(
@@ -271,16 +268,24 @@ def task_coletar_vinc_pub(
     else:
         ano = str(date.today().year)
     
-    id_arquivo_coletado = task_baixar_rais(
-                            ano=ano,
-                            nome_arquivo_servidor="RAIS_VINC_PUB_MG_ES_RJ.7z",
+    id_arquivo_coletado = task_baixar_rais.apply(
+                            kwargs={
+                                'ano':ano,
+                                'nome_arquivo_servidor':"RAIS_VINC_PUB_MG_ES_RJ.7z"
+                            }
                         )
-    ch = chain(
-        task_filtrar_vinc_pub.si(id_arquivo_coletado),
-        task_carregar_vinc_pub.s(),
-    )
-    async_result = ch.apply_async()
-    print(f"Coleta do arquivo RAIS RAIS_VINC_PUB_MG_ES_RJ.7z disparada: {async_result.id}")
+    
+    arquivo = ArquivoColetado.objects.get(id=id_arquivo_coletado)
+    try:
+        filtrar_vinc_pub(arquivo)
+        carregar_vinc_pub(arquivo)
+    except Exception as e:
+        print(e)
+        arquivo.status = "ERROR"
+        arquivo.msg = str(e)
+        arquivo.save()
+        raise
+
     
 # RAIS_ESTAB_PUB.7z   
 @shared_task(
@@ -296,16 +301,24 @@ def task_coletar_estab_pub(
     else:
         ano = str(date.today().year)
     
-    id_arquivo_coletado = task_baixar_rais(
-                            ano=ano,
-                            nome_arquivo_servidor="RAIS_ESTAB_PUB.7z",
+    id_arquivo_coletado = task_baixar_rais.apply(
+                            kwargs={
+                                'ano':ano,
+                                'nome_arquivo_servidor':"RAIS_ESTAB_PUB.7z",
+                            }
                         )
-    ch = chain(
-        task_filtrar_estab_pub.si(id_arquivo_coletado),
-        task_carregar_estab_pub.s(),
-    )
-    async_result = ch.apply_async()
-    print(f"Coleta do arquivo RAIS RAIS_ESTAB_PUB.7z disparada: {async_result.id}")
+    
+    arquivo = ArquivoColetado.objects.get(id=id_arquivo_coletado)
+    try:
+        filtrar_estab_pub(arquivo)
+        carregar_estab_pub(arquivo)
+    except Exception as e:
+        print(e)
+        arquivo.status = "ERROR"
+        arquivo.msg = str(e)
+        arquivo.save()
+        raise
+
 
 @shared_task(
     bind=True,
@@ -325,89 +338,87 @@ def task_baixar_caged(
     arquivo_coletado.status = "PENDING"
     arquivo_coletado.save()
     try:
-        mensagem = baixar_caged(arquivoColetado=arquivo_coletado)
-        #arquivo_coletado.status = "DOWNLOADED"
-        arquivo_coletado.msg = mensagem
-        arquivo_coletado.save()
-        return arquivo_coletado.id
+        baixar_caged(arquivoColetado=arquivo_coletado)
         
     except Exception as e:
         arquivo_coletado.status = "FAILED"
         arquivo_coletado.msg = str(e)
         arquivo_coletado.save()
         raise
-
-@shared_task(
-    bind=True,
-)
-def task_filtrar_caged(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        filtrar_caged(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
-
-@shared_task(
-    bind=True,
-)
-def task_carregar_caged_mov(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        carregar_caged_mov(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
     
-@shared_task(
-    bind=True,
-)
-def task_carregar_caged_for(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        carregar_caged_for(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
+    return arquivo_coletado.id
 
-@shared_task(
-    bind=True,
-)
-def task_carregar_caged_exc(
-    self,
-    id_arquivoColetado : int,
-):
-    arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
-    try:
-        carregar_caged_exc(arquivoColetado)
-        return arquivoColetado.id
-    except Exception as e:
-        print(e)
-        arquivoColetado.status = "ERROR"
-        arquivoColetado.msg = str(e)
-        arquivoColetado.save()
-        raise
+# @shared_task(
+#     bind=True,
+# )
+# def task_filtrar_caged(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         filtrar_caged(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+
+# @shared_task(
+#     bind=True,
+# )
+# def task_carregar_caged_mov(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         carregar_caged_mov(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+    
+# @shared_task(
+#     bind=True,
+# )
+# def task_carregar_caged_for(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         carregar_caged_for(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
+
+# @shared_task(
+#     bind=True,
+# )
+# def task_carregar_caged_exc(
+#     self,
+#     id_arquivoColetado : int,
+# ):
+#     arquivoColetado = ArquivoColetado.objects.get(id=id_arquivoColetado)
+#     try:
+#         carregar_caged_exc(arquivoColetado)
+#         return arquivoColetado.id
+#     except Exception as e:
+#         print(e)
+#         arquivoColetado.status = "ERROR"
+#         arquivoColetado.msg = str(e)
+#         arquivoColetado.save()
+#         raise
     
 @shared_task(
     bind=True,
@@ -418,17 +429,24 @@ def task_coletar_caged_mov(
     mes: int,
 ):
     
-    id_arquivo_coletado = task_baixar_caged(
-                            ano=ano,
-                            mes=mes,
-                            nome_arquivo_servidor=f"CAGEDMOV",
+    id_arquivo_coletado = task_baixar_caged.apply(
+                            kwargs={
+                                'ano':ano,
+                                'mes':mes,
+                                'nome_arquivo_servidor':f"CAGEDMOV",
+                            }
                         )
-    ch = chain(
-        task_filtrar_caged.si(id_arquivo_coletado),
-        task_carregar_caged_mov.s(),
-    )
-    async_result = ch.apply_async()
-    print(f"Coleta do arquivo CAGED MOV {ano}-{mes} disparada: {async_result.id}")  
+    arquivo = ArquivoColetado.objects.get(id = id_arquivo_coletado)
+    try:
+        filtrar_caged(arquivo)
+        carregar_caged_mov(arquivo)
+    except Exception as e:
+        print(e)
+        arquivo.status = "ERROR"
+        arquivo.msg = str(e)
+        arquivo.save()
+        raise
+    
 
 @shared_task(
     bind=True,
@@ -439,10 +457,12 @@ def task_coletar_caged_for(
     mes: int,
 ):
     try:
-        id_arquivo_coletado = task_baixar_caged(
-                                ano=ano,
-                                mes=mes,
-                                nome_arquivo_servidor=f"CAGEDFOR",
+        id_arquivo_coletado = task_baixar_caged.apply(
+                                kwargs={
+                                    'ano':ano,
+                                    'mes':mes,
+                                    'nome_arquivo_servidor':f"CAGEDFOR",
+                                }
                             )
     except Exception as e:
         if(str(e).startswith("550")): # arquivo não encontrado
@@ -450,12 +470,17 @@ def task_coletar_caged_for(
             return None
         else:
             raise e
-    ch = chain(
-        task_filtrar_caged.si(id_arquivo_coletado),
-        task_carregar_caged_for.s(),
-    )
-    async_result = ch.apply_async()
-    print(f"Coleta do arquivo CAGED FOR {ano}-{mes} disparada: {async_result.id}")
+    
+    arquivo = ArquivoColetado.objects.get(id = id_arquivo_coletado)
+    try:
+        filtrar_caged(arquivo)
+        carregar_caged_for(arquivo)
+    except Exception as e:
+        print(e)
+        arquivo.status = "ERROR"
+        arquivo.msg = str(e)
+        arquivo.save()
+        raise
 
 @shared_task(
     bind=True,
@@ -466,24 +491,30 @@ def task_coletar_caged_exc(
     mes: int,
 ):
     try:
-        id_arquivo_coletado = task_baixar_caged(
-                                ano=ano,
-                                mes=mes,
-                                nome_arquivo_servidor=f"CAGEDEXC",
+        id_arquivo_coletado = task_baixar_caged.apply(
+                                kwargs={
+                                    'ano':ano,
+                                    'mes':mes,
+                                    'nome_arquivo_servidor':f"CAGEDEXC",
+                                }
                             )
-        ch = chain(
-            task_filtrar_caged.si(id_arquivo_coletado),
-            task_carregar_caged_exc.s(),
-        )
     except Exception as e:
         if(str(e).startswith("550")): # arquivo não encontrado
             print(f"Arquivo CAGED EXC {ano}-{mes} não encontrado. Pulando etapa de coleta.")
             return None
         else:
             raise e
-        
-    async_result = ch.apply_async()
-    print(f"Coleta do arquivo CAGED EXC {ano}-{mes} disparada: {async_result.id}")
+    
+    arquivo = ArquivoColetado.objects.get(id = id_arquivo_coletado)
+    try:
+        filtrar_caged(arquivo)
+        carregar_caged_exc(arquivo)
+    except Exception as e:
+        print(e)
+        arquivo.status = "ERROR"
+        arquivo.msg = str(e)
+        arquivo.save()
+        raise    
 
 @shared_task(
     bind=True,
