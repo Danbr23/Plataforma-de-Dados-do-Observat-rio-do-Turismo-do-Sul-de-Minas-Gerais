@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from receita_federal.models import Estabelecimento
-from caged.models import CAGED
+from caged.models import SaldoMensalCaged
 from cadastros.models import Municipio, CNAE
-from rais.models import VinculosAtivos, Saldo
+from rais.models import EstoqueAnual, SaldoMensal
 
 class EstabelecimentoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,12 +14,12 @@ class MunicipioSerializer(serializers.ModelSerializer):
         model = Municipio
         fields = '__all__'
 
-class SaldoModelSerializer(serializers.ModelSerializer):
+class SaldoMensalModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Saldo
+        model = SaldoMensal
         fields = ['referencia','saldo']
         
-class SaldoSerializer(serializers.Serializer):
+class SaldoMensalSerializer(serializers.Serializer):
     mes = serializers.CharField()
     saldo = serializers.DecimalField(max_digits=18,decimal_places=2)
     

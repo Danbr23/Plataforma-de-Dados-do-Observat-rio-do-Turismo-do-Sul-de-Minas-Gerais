@@ -1,7 +1,7 @@
 from django.db import models
 
 # Create your models here.
-class VinculosAtivos(models.Model):
+class EstoqueAnual(models.Model):
     municipio=  models.ForeignKey('cadastros.Municipio', to_field='codigo_ibge', on_delete=models.CASCADE)
     cnae = models.ForeignKey('cadastros.CNAE', to_field='codigo', on_delete=models.CASCADE)
     #subclasse_cnae = models.CharField(max_length=7, default="")
@@ -9,15 +9,15 @@ class VinculosAtivos(models.Model):
     quantidade = models.IntegerField(default=0)
     
     class Meta:
-        verbose_name = "Vínculo Ativo"
-        verbose_name_plural = "Vínculos Ativos"
+        verbose_name = "Estoque Anual"
+        verbose_name_plural = "Estoques Anuais"
         
         indexes = [
             models.Index(fields=['municipio', 'cnae', 'referencia']),
             models.Index(fields=['municipio', 'cnae']),
         ]
     
-class Saldo(models.Model):
+class SaldoMensal(models.Model):
     municipio=  models.ForeignKey('cadastros.Municipio', to_field='codigo_ibge', on_delete=models.CASCADE)
     cnae = models.ForeignKey('cadastros.CNAE', to_field='codigo', on_delete=models.CASCADE)
     #subclasse_cnae = models.CharField(max_length=7, default="")
@@ -25,7 +25,8 @@ class Saldo(models.Model):
     saldo = models.IntegerField(default=0)
     
     class Meta:
-        
+        verbose_name = "Saldo Mensal"
+        verbose_name_plural = "Saldos Mensais"
         indexes = [
             models.Index(fields=['municipio', 'cnae', 'referencia']),
         ]

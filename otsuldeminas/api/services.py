@@ -5,8 +5,8 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Sum, Max, Min
 from datetime import date
 import calendar
-from rais.models import Saldo, VinculosAtivos
-from caged.models import CAGED
+from rais.models import SaldoMensal, EstoqueAnual
+from caged.models import SaldoMensalCaged
 from django.db.models import Count
 
 def gerar_ultimo_dia(ano, mes):
@@ -53,7 +53,7 @@ def resgatar_saldo(codigo_ibge, data_inicio:str = None, data_fim:str = None):
     print(inicio)
     print(fim)
     print(codigo_ibge)
-    qs = list(Saldo.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (inicio,fim))
+    qs = list(SaldoMensal.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (inicio,fim))
         .annotate(mes=TruncMonth("referencia"))
         .values("mes")
         .annotate(saldo=Sum("saldo"))
@@ -61,7 +61,7 @@ def resgatar_saldo(codigo_ibge, data_inicio:str = None, data_fim:str = None):
         )
     
     #print(qs)
-    ultima_data = (Saldo.objects.filter(municipio__codigo_ibge = codigo_ibge).aggregate(Max("referencia"))["referencia__max"])
+    ultima_data = (SaldoMensal.objects.filter(municipio__codigo_ibge = codigo_ibge).aggregate(Max("referencia"))["referencia__max"])
     print(ultima_data)
     print(fim)
     if fim > ultima_data:
@@ -75,7 +75,7 @@ def resgatar_saldo(codigo_ibge, data_inicio:str = None, data_fim:str = None):
 
         recomeco = date(ano,mes,1)
         print(recomeco)
-        qs2 = list(CAGED.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (recomeco,fim))
+        qs2 = list(SaldoMensalCaged.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (recomeco,fim))
             .annotate(mes=TruncMonth("referencia"))
             .values("mes")
             .annotate(saldo=Sum("saldo_caged"))
@@ -125,13 +125,13 @@ def qtd_Estabelecimentos_Resumido():
         
 def service_funcionarios_por_municipio_por_cnae():
     
-    data_mais_recente_rais = VinculosAtivos.objects.aggregate(Max("referencia"))["referencia__max"]
-    data_mais_recente_caged = CAGED.objects.aggregate(Max("referencia"))["referencia__max"]
+    data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
+    data_mais_recente_caged = SaldoMensalCaged.objects.aggregate(Max("referencia"))["referencia__max"]
     
     if data_mais_recente_caged > data_mais_recente_rais:
         ate_mes = data_mais_recente_caged
-        vinculos = VinculosAtivos.objects.select_related("municipio", "cnae").filter(referencia=data_mais_recente_rais)
-        cageds = CAGED.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais)
+        vinculos = EstoqueAnual.objects.select_related("municipio", "cnae").filter(referencia=data_mais_recente_rais)
+        cageds = SaldoMensalCaged.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais)
         data = {}
         for row in vinculos:
             nome_municipio = row.municipio.nome
@@ -151,7 +151,7 @@ def service_funcionarios_por_municipio_por_cnae():
         }
     else:
         ate_mes = data_mais_recente_rais
-        vinculos = VinculosAtivos.objects.select_related("municipio", "cnae").filter(referencia=data_mais_recente_rais)
+        vinculos = EstoqueAnual.objects.select_related("municipio", "cnae").filter(referencia=data_mais_recente_rais)
         data = {}
         for row in vinculos:
             nome_municipio = row.municipio.nome
@@ -170,9 +170,9 @@ def service_funcionarios_por_municipio_por_cnae():
     return resposta
 
 def service_postos_de_trabalho():
-    data_mais_recente_rais = VinculosAtivos.objects.aggregate(Max("referencia"))["referencia__max"]
-    saldos_rais = Saldo.objects.select_related("municipio", "cnae").all().order_by("referencia")
-    cageds = CAGED.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais).order_by("referencia")
+    data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
+    saldos_rais = SaldoMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
+    cageds = SaldoMensalCaged.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais).order_by("referencia")
     
     agregados = {}
     for row in saldos_rais:
@@ -205,19 +205,19 @@ def service_postos_de_trabalho():
 
 # def service_estoque_acumulado():
     
-#     inicio = VinculosAtivos.objects.aggregate(Min("referencia__year"))["referencia__year__min"]
-#     fim = VinculosAtivos.objects.aggregate(Max("referencia__year"))["referencia__year__max"]
+#     inicio = EstoqueAnual.objects.aggregate(Min("referencia__year"))["referencia__year__min"]
+#     fim = EstoqueAnual.objects.aggregate(Max("referencia__year"))["referencia__year__max"]
     
     
 #     rais = (
-#         VinculosAtivos.objects
+#         EstoqueAnual.objects
 #         .values('municipio__nome', 'cnae__classificacao_otmg', 'referencia')
 #         .annotate(total_quantidade=Sum('quantidade'))
 #         .order_by("referencia")
 #         )
     
 #     cageds = (
-#         CAGED.objects
+#         SaldoMensalCaged.objects
 #         .filter(referencia__year__gt = fim)
 #         .values('municipio__nome', 'cnae__classificacao_otmg', 'referencia')
 #         .annotate(total_quantidade=Sum('saldo_caged'))

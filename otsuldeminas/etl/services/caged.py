@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models import F
 from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
-from caged.models import CAGED
+from caged.models import SaldoMensalCaged
 import os
 import py7zr
 import pathlib
@@ -122,13 +122,13 @@ def popular_caged(ano, mes):
     
     caged_objs = []
     for municipio_codigo, cnae_codigo, mes in combinacoes:
-        caged_objs.append(CAGED(
+        caged_objs.append(SaldoMensalCaged(
             municipio_id=municipio_codigo,
             cnae_id=cnae_codigo,
             referencia=referencia,
         ))
     
-    CAGED.objects.bulk_create(caged_objs, batch_size=2000)
+    SaldoMensalCaged.objects.bulk_create(caged_objs, batch_size=2000)
 
 def carregar_caged_mov(arquivoColetado: ArquivoColetado):
     
@@ -147,7 +147,7 @@ def carregar_caged_mov(arquivoColetado: ArquivoColetado):
         cnae_codigo = row.iloc[5][0:5]
         movimentacao = int(row.iloc[6])
         
-        CAGED.objects.filter(
+        SaldoMensalCaged.objects.filter(
             municipio_id=municipio_codigo,
             cnae_id=cnae_codigo,
             referencia=refencia
@@ -173,7 +173,7 @@ def carregar_caged_for(arquivoColetado: ArquivoColetado):
         ultimo_dia = calendar.monthrange(ano, mes)[1]
         referencia = date(ano, mes, ultimo_dia)
         
-        CAGED.objects.filter(
+        SaldoMensalCaged.objects.filter(
             municipio_id=municipio_codigo,
             cnae_id=cnae_codigo,
             referencia=referencia,
@@ -199,7 +199,7 @@ def carregar_caged_exc(arquivoColetado: ArquivoColetado):
         referencia = date(ano, mes, ultimo_dia)
         
 
-        CAGED.objects.filter(
+        SaldoMensalCaged.objects.filter(
             municipio_id=municipio_codigo,
             cnae_id=cnae_codigo,
             referencia=referencia,

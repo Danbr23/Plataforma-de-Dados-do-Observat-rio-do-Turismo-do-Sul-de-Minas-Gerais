@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import EstabelecimentoSerializer, MunicipioSerializer, SaldoSerializer
+from .serializers import EstabelecimentoSerializer, MunicipioSerializer, SaldoMensalSerializer
 from receita_federal.models import Estabelecimento
 from cadastros.models import Municipio
 from .services import *
@@ -31,12 +31,12 @@ class SummaryView(APIView):
         
         return Response(response)
 
-class SaldoView(APIView):
+class SaldoMensalView(APIView):
     def get(self, request, codigo_ibge, data_inicio,data_fim):
         
         saldos = resgatar_saldo(codigo_ibge=codigo_ibge, data_inicio=data_inicio,data_fim=data_fim)
         #print(saldos)
-        #serializer = SaldoSerializer(saldos, many=True)
+        #serializer = SaldoMensalSerializer(saldos, many=True)
         return Response(saldos)
 
 class QtdEstabelecimentos(APIView):

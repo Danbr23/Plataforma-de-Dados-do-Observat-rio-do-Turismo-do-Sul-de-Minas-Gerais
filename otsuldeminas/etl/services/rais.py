@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models import F
 from etl.models import ArquivoColetado
 from cadastros.models import CNAE, Municipio
-from rais.models import VinculosAtivos, Saldo
+from rais.models import EstoqueAnual, SaldoMensal
 import os
 import py7zr
 import pathlib
@@ -170,7 +170,7 @@ def filtrar_estab_pub(arquivoColetado : ArquivoColetado):
     arquivoColetado.status = "FILTERED"
     arquivoColetado.save()
     
-def popular_saldo(ano):
+def popular_saldo_mensal(ano):
     municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
     cnaes_codigos = CNAE.objects.values_list('codigo',flat=True)
     meses = range(1,13)
@@ -186,14 +186,14 @@ def popular_saldo(ano):
     
     for m_id, c_id, mes in combinacoes:
         objetos_rais.append(
-            Saldo(
+            SaldoMensal(
                 municipio_id = m_id,
                 cnae_id = c_id,
                 referencia = date(ano, mes, ultimos_dias[mes])
             )
         )
     
-    Saldo.objects.bulk_create(objetos_rais, batch_size=2000)
+    SaldoMensal.objects.bulk_create(objetos_rais, batch_size=2000)
 
 def popular_vinculos_ativos(ano):
     municipios_codigos = Municipio.objects.values_list('codigo_ibge', flat=True)
@@ -208,19 +208,19 @@ def popular_vinculos_ativos(ano):
     
     for m_id, c_id, mes in combinacoes:
         objetos_rais.append(
-            VinculosAtivos(
+            EstoqueAnual(
                 municipio_id = m_id,
                 cnae_id = c_id,
                 referencia = date(ano, mes, ultimo_dia)
             )
         )
     
-    VinculosAtivos.objects.bulk_create(objetos_rais, batch_size=2000)
+    EstoqueAnual.objects.bulk_create(objetos_rais, batch_size=2000)
 
 def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
 
     ano = arquivoColetado.ano
-    popular_saldo(ano)
+    popular_saldo_mensal(ano)
     
     meses = range(1,13)
     ultimos_dias = {
@@ -245,7 +245,7 @@ def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
                 municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
                 cnae = CNAE.objects.get(codigo=cnae_codigo)
                 
-                updated = Saldo.objects.filter(
+                updated = SaldoMensal.objects.filter(
                     municipio = municipio,
                     cnae = cnae,
                     referencia = data_referencia
@@ -261,7 +261,7 @@ def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
                 municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
                 cnae = CNAE.objects.get(codigo=cnae_codigo)
                 
-                updated = Saldo.objects.filter(
+                updated = SaldoMensal.objects.filter(
                     municipio = municipio,
                     cnae = cnae,
                     referencia = data_referencia
@@ -297,7 +297,7 @@ def carregar_estab_pub(arquivoColetado : ArquivoColetado):
         municipio = Municipio.objects.get(codigo_ibge=municipio_ibge)
         cnae = CNAE.objects.get(codigo=cnae_codigo)
         
-        updated = VinculosAtivos.objects.filter(
+        updated = EstoqueAnual.objects.filter(
             municipio = municipio,
             cnae = cnae,
             referencia = data_referencia
