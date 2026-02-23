@@ -10,7 +10,7 @@ class CSVExporterResumo:
     def export(data: dict, filename: str = "dados.csv"):
         buffer = StringIO()
         writer = csv.writer(buffer)
-        writer.writerow(["Município", "Classificação", "Valor"])
+        writer.writerow(["Município", "Classificação", "Funcionarios"])
 
         # data pode estar diretamente no formato ou dentro de 'dados'
         if "dados" in data:

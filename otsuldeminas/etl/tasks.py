@@ -3,8 +3,8 @@ from celery.exceptions import SoftTimeLimitExceeded
 from requests.exceptions import Timeout, ConnectionError, RequestException, HTTPError
 from datetime import date
 from .services.receita_federal import baixar_arquivo_rf, extrair_arquivo_rf, filtrar_arquivo_rf, carregar_arquivo_rf
-from .services.rais import baixar_rais, filtrar_vinc_pub, carregar_vinc_pub, filtrar_estab_pub, carregar_estab_pub
-from .services.caged import baixar_caged, filtrar_caged, carregar_caged_mov, carregar_caged_for, carregar_caged_exc
+from .services.rais import baixar_rais, filtrar_vinc_pub, carregar_vinc_pub, filtrar_estab_pub, carregar_estab_pub, carregar_saldos_mensais
+from .services.caged import baixar_caged, filtrar_caged, carregar_caged_mov, carregar_caged_for, carregar_caged_exc, carregar_saldos_mensais_temporarios
 from .models import ArquivoColetado
 
 @shared_task(
@@ -260,13 +260,8 @@ def task_baixar_rais(
 )
 def task_coletar_vinc_pub(
     self,
-    **kwargs,
+    ano: int
     ):
-    
-    if "ano" in kwargs:
-        ano = kwargs["ano"]
-    else:
-        ano = str(date.today().year)
     
     id_arquivo_coletado = task_baixar_rais.apply(
                             kwargs={
@@ -293,13 +288,9 @@ def task_coletar_vinc_pub(
 )
 def task_coletar_estab_pub(
     self,
-    **kwargs,
+    ano: int
     ):
-    
-    if "ano" in kwargs:
-        ano = kwargs["ano"]
-    else:
-        ano = str(date.today().year)
+
     
     id_arquivo_coletado = task_baixar_rais.apply(
                             kwargs={
@@ -318,6 +309,48 @@ def task_coletar_estab_pub(
         arquivo.msg = str(e)
         arquivo.save()
         raise
+
+@shared_task(
+    bind=True,
+)
+def task_carregar_saldos_mensais(
+    self,
+    ano: int
+    ):
+    try:
+        carregar_saldos_mensais(ano)
+    except Exception as e:
+        print(e)
+        raise
+
+@shared_task(
+    bind=True,
+)
+def task_finalizar_coleta_rais(
+        self,
+    ):
+    print("Coleta dos arquivos RAIS finalizada.")
+
+@shared_task(
+    bind=True,
+)
+def task_coletar_arquivos_rais(
+    self,
+    **kwargs,
+):
+    if "ano" in kwargs:
+        ano = kwargs["ano"]
+    else:
+        ano = str(date.today().year)
+        
+    ch = chain(
+        task_coletar_vinc_pub.si(ano=ano),
+        task_coletar_estab_pub.si(ano=ano),
+        task_carregar_saldos_mensais.si(ano=ano),
+        task_finalizar_coleta_rais.si(),
+    )
+    async_result = ch.apply_async()
+    print(f"Coleta dos arquivos RAIS {ano} disparada: {async_result.id}")
 
 
 @shared_task(
@@ -514,7 +547,21 @@ def task_coletar_caged_exc(
         arquivo.status = "ERROR"
         arquivo.msg = str(e)
         arquivo.save()
-        raise    
+        raise   
+    
+@shared_task(
+    bind=True,
+)
+def task_carregar_saldos_mensais_temporarios(
+    self,
+    year:int,
+    month:int,
+):
+    try:
+        carregar_saldos_mensais_temporarios(year, month)
+    except Exception as e:
+        print(e)
+        raise 
 
 @shared_task(
     bind=True,
@@ -545,6 +592,7 @@ def task_coletar_arquivos_caged(
         task_coletar_caged_mov.si(ano=ano, mes=mes),
         task_coletar_caged_for.si(ano=ano, mes=mes),
         task_coletar_caged_exc.si(ano=ano, mes=mes),
+        task_carregar_saldos_mensais_temporarios.si(year=ano, month=mes),
         task_finalizar_coleta_caged.si(),
     )
     async_result = ch.apply_async()
