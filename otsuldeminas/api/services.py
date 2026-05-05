@@ -28,9 +28,13 @@ def qtd_estabelecimentos(codigo_ibge):
     return qtd_estabelecimentos
     
 
-def resgatar_saldo(codigo_ibge, data_inicio:str = None, data_fim:str = None):
+def resgatar_saldo(codigos_ibge:list = None, data_inicio:str = None, data_fim:str = None):
     print(data_inicio)
     print(data_fim)
+    
+    if not codigos_ibge:
+        codigos_ibge = Municipio.objects.values_list("codigo_ibge", flat=True)
+    
     if not data_fim:
         ano = date.today().year
         mes = date.today().month
@@ -52,49 +56,60 @@ def resgatar_saldo(codigo_ibge, data_inicio:str = None, data_fim:str = None):
     
     print(inicio)
     print(fim)
-    print(codigo_ibge)
-    qs = list(SaldoMensal.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (inicio,fim))
-        .annotate(mes=TruncMonth("referencia"))
-        .values("mes")
-        .annotate(saldo=Sum("saldo"))
-        .order_by("referencia")
-        )
-    
-    #print(qs)
-    ultima_data = (SaldoMensal.objects.filter(municipio__codigo_ibge = codigo_ibge).aggregate(Max("referencia"))["referencia__max"])
-    print(ultima_data)
-    print(fim)
-    if fim > ultima_data:
-        mes = ultima_data.month
-        ano = ultima_data.year
-        if mes == 12:
-            mes = 1
-            ano += 1
-        else:
-            mes +=1
-
-        recomeco = date(ano,mes,1)
-        print(recomeco)
-        qs2 = list(SaldoMensalCaged.objects.filter(municipio__codigo_ibge = codigo_ibge, referencia__range = (recomeco,fim))
+    resposta = []
+    dicionario_saldos = {}
+    for codigo in codigos_ibge:
+        nome = Municipio.objects.get(codigo_ibge=codigo).nome
+        print(codigo)
+        qs = list(SaldoMensal.objects.filter(municipio__codigo_ibge = codigo, referencia__range = (inicio,fim))
             .annotate(mes=TruncMonth("referencia"))
             .values("mes")
-            .annotate(saldo=Sum("saldo_caged"))
+            .annotate(saldo=Sum("saldo"))
             .order_by("referencia")
             )
-        print(qs2)
-        qs = qs + qs2
         
-    for item in qs:
-        mes = item["mes"]
-        if hasattr(mes,"date"):
-            mes = mes.date()
-        item["mes"] = f"{mes.year:04d}-{mes.month:02d}"
+        #print(qs)
+        ultima_data = (SaldoMensal.objects.filter(municipio__codigo_ibge = codigo).aggregate(Max("referencia"))["referencia__max"])
+        print(ultima_data)
+        print(fim)
+        if fim > ultima_data:
+            mes = ultima_data.month
+            ano = ultima_data.year
+            if mes == 12:
+                mes = 1
+                ano += 1
+            else:
+                mes +=1
+
+            recomeco = date(ano,mes,1)
+            print(recomeco)
+            qs2 = list(SaldoMensalCaged.objects.filter(municipio__codigo_ibge = codigo, referencia__range = (recomeco,fim))
+                .annotate(mes=TruncMonth("referencia"))
+                .values("mes")
+                .annotate(saldo=Sum("saldo_caged"))
+                .order_by("referencia")
+                )
+            print(qs2)
+            qs = qs + qs2
         
-    return qs
+        lista_saldos = {}
+        for item in qs:
+            mes = item["mes"]
+            if hasattr(mes,"date"):
+                mes = mes.date()
+            #item["mes"] = f"{mes.year:04d}-{mes.month:02d}"
+            data = f"{mes.year:04d}-{mes.month:02d}"
+            lista_saldos[data] = item["saldo"]
+        
+        dicionario_saldos[nome] = lista_saldos
+    
+    resposta.append(dicionario_saldos)
+        
+    return resposta
     
     
      
-def qtd_Estabelecimentos_Resumido():
+def qtd_Estabelecimentos_CSV():
     
     #renderer_classes = [JSONRenderer, CSVRenderer]
 
@@ -123,7 +138,7 @@ def qtd_Estabelecimentos_Resumido():
             return CSVExporterResumo.export(out, "estabelecimentos.csv")
         return Response(out)
         
-def service_funcionarios_por_municipio_por_cnae():
+def funcionarios_por_municipio_por_cnae_csv():
     
     data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
     data_mais_recente_caged = SaldoMensalCaged.objects.aggregate(Max("referencia"))["referencia__max"]
@@ -169,7 +184,7 @@ def service_funcionarios_por_municipio_por_cnae():
     
     return resposta
 
-def service_postos_de_trabalho():
+def postos_de_trabalho_csv():
     data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
     saldos_rais = SaldoMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
     cageds = SaldoMensalCaged.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais).order_by("referencia")
@@ -203,7 +218,7 @@ def service_postos_de_trabalho():
             
     return data
 
-def service_estoque_acumulado():
+def estoque_acumulado_csv():
     
     estoques = EstoqueMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
     

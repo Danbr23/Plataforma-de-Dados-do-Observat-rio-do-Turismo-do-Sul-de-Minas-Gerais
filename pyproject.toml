@@ -37,4 +37,5 @@ dependencies = [
     "django-celery-beat>=2.8.1",
     "django-celery-results>=2.6.0",
     "charset-normalizer>=3.4.3",
+    "django-schema-viewer>=0.5.3",
 ]

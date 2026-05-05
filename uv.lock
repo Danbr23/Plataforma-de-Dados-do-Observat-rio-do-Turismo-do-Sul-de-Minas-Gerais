@@ -575,6 +575,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-schema-viewer"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/80/55f39f2ec3c50fd2f2db8dd7fbc9cf7ade15cf82347a8496023e2e86bb59/django_schema_viewer-0.5.3.tar.gz", hash = "sha256:d5bdaa7cfec0827d1232f1d79f746ea5a7f42bf6abf2359615084acb230b2d1c", size = 486091, upload-time = "2025-03-23T20:07:47.136Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/7e/1203dcdce3fd1fbf6f7924961ba5aed4407cddd4074d784806de3f0242f5/django_schema_viewer-0.5.3-py3-none-any.whl", hash = "sha256:f6385d74c6e2c5e204fc7b2b8d7d25affe63f9f6b96b03e79e5b094b5012588a", size = 492696, upload-time = "2025-03-23T20:07:45.616Z" },
+]
+
+[[package]]
 name = "django-timezone-field"
 version = "7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1508,6 +1520,7 @@ dependencies = [
     { name = "django-celery-results" },
     { name = "django-extensions" },
     { name = "django-filter" },
+    { name = "django-schema-viewer" },
     { name = "djangorestframework" },
     { name = "gevent" },
     { name = "httpx", extra = ["http2"] },
@@ -1544,6 +1557,7 @@ requires-dist = [
     { name = "django-celery-results", specifier = ">=2.6.0" },
     { name = "django-extensions", specifier = ">=3.2,<4" },
     { name = "django-filter", specifier = ">=25.1" },
+    { name = "django-schema-viewer", specifier = ">=0.5.3" },
     { name = "djangorestframework", specifier = ">=3.16.1" },
     { name = "gevent", specifier = ">=24.2.1" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },

@@ -14,6 +14,11 @@ class MunicipioSerializer(serializers.ModelSerializer):
         model = Municipio
         fields = '__all__'
 
+class CNAESerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CNAE
+        fields = '__all__'
+
 class SaldoMensalModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaldoMensal
