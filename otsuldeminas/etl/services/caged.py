@@ -215,6 +215,7 @@ def carregar_caged_exc(arquivoColetado: ArquivoColetado):
     arquivoColetado.save()
     print("carregou")
 
+# Este nome também está ruim. A função não carrega os saldos mensais, ela atualiza os estoques mensais com base nos saldos mensais e nos estoques anuais. Talvez seja melhor renomear para "atualizar_estoques_mensais_com_saldos" ou algo do tipo.
 def carregar_saldos_mensais_temporarios(year:int, month:int):
     ano_estoque_anual_mais_recente = EstoqueAnual.objects.order_by("-referencia").first().referencia.year
     mes_atual = gerar_ultimo_dia(year,month)

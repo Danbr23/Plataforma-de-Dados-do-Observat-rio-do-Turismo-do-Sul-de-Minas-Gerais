@@ -91,7 +91,8 @@ def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
         chunks = pd.read_csv(path_extraido, encoding="latin1", chunksize=chunk_size, dtype=str, sep=';')
         cnaes = tuple(cnae for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
     else:
-        cnaes = tuple(cnae[0:4] for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
+        cnaes = tuple(cnae for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
+        #cnaes = tuple(cnae[0:4] for cnae in list(CNAE.objects.values_list("codigo", flat=True))) #  Cidade.objects.values_list("nome")
         chunks = pd.read_csv(path_extraido, encoding="latin1", chunksize=chunk_size, dtype=str)
     
     #colunas_indejesadas = ['Bairros SP','Bairros Fortaleza','Bairros RJ', 'CNAE 95 Classe', 'Distritos SP', 'Regiões Adm DF']
@@ -101,17 +102,21 @@ def filtrar_vinc_pub(arquivoColetado : ArquivoColetado):
     chunk = next(chunks)
     
     chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
+    chunk[chunk.columns[5]] = chunk[chunk.columns[5]].str.strip()
     # mask = chunk["Município - Código"].isin(lista_ibge) & chunk["CNAE 2.0 Classe - Código"].isin(cnaes)
     mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False) & chunk[chunk.columns[17]].str.isdigit() & chunk[chunk.columns[18]].str.isdigit()
     filtrado = chunk[mask]
+    # print(len(filtrado))
     filtrado.to_csv(saida, mode="w", index=False, header=True, encoding="utf-8")
     
     while True:
         try:
             chunk = next(chunks)
             chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
+            chunk[chunk.columns[5]] = chunk[chunk.columns[5]].str.strip()
             mask = chunk[chunk.columns[20]].isin(lista_ibge) & chunk[chunk.columns[5]].str.startswith(cnaes, na=False) & chunk[chunk.columns[17]].str.isdigit() & chunk[chunk.columns[18]].str.isdigit()
             filtrado = chunk[mask]
+            # print(len(filtrado))
             filtrado.to_csv(saida, mode="a", index=False, header=False, encoding="utf-8")
         except StopIteration:
     
@@ -153,8 +158,9 @@ def filtrar_estab_pub(arquivoColetado : ArquivoColetado):
     chunk = next(chunks)
     
     chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
+    chunk[chunk.columns[12]] = chunk[chunk.columns[12]].str.strip()
     # mask = chunk["Município - Código"].isin(lista_ibge) & chunk["CNAE 2.0 Classe - Código"].isin(cnaes)
-    mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str[0:5].isin(cnaes)
+    mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str.startswith(cnaes, na=False)
     filtrado = chunk[mask]
     filtrado.to_csv(saida, mode="w", index=False, header=True, encoding="utf-8")
     
@@ -162,7 +168,8 @@ def filtrar_estab_pub(arquivoColetado : ArquivoColetado):
         try:
             chunk = next(chunks)
             chunk = chunk.drop(chunk.columns[colunas_indejesadas],axis=1)
-            mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str[0:5].isin(cnaes)
+            chunk[chunk.columns[12]] = chunk[chunk.columns[12]].str.strip()
+            mask = chunk[chunk.columns[10]].isin(lista_ibge) & chunk[chunk.columns[12]].str.startswith(cnaes, na=False)
             filtrado = chunk[mask]
             filtrado.to_csv(saida, mode="a", index=False, header=False, encoding="utf-8")
         except StopIteration:
@@ -239,7 +246,8 @@ def carregar_vinc_pub(arquivoColetado : ArquivoColetado):
     
     for idx, row in df.iterrows():
         municipio_ibge = row[df.columns[20]]
-        cnae_codigo = row[df.columns[30]][0:5]
+        # cnae_codigo = row[df.columns[30]][0:5] Porque coluna 30 se o cnae esta na coluna 5?
+        cnae_codigo = row[df.columns[5]][0:5]
         mes_admissao = int(row[df.columns[17]])
         mes_desligamento = int(row[df.columns[18]])
         
@@ -312,6 +320,9 @@ def carregar_estab_pub(arquivoColetado : ArquivoColetado):
     arquivoColetado.save()
     print("carregou")
 
+
+# Este nome aqui esta ruim. A função não carrega os saldos mensais, ela atualiza os estoques mensais com base nos saldos mensais e nos estoques anuais. Talvez seja melhor renomear para "atualizar_estoques_mensais_com_saldos" ou algo do tipo.
+#seria bom declarar a variavel qtd antes do if, para evitar problemas de escopo e melhorar a legibilidade do código.
 def carregar_saldos_mensais(year:int):
     ano_anterior = year - 1
     estoques_anuais = EstoqueAnual.objects.filter(referencia__year = ano_anterior)

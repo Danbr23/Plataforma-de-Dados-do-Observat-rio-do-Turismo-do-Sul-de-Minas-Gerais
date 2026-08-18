@@ -268,7 +268,7 @@ def task_coletar_vinc_pub(
                                 'ano':ano,
                                 'nome_arquivo_servidor':"RAIS_VINC_PUB_MG_ES_RJ.7z"
                             }
-                        )
+                        ).result
     
     arquivo = ArquivoColetado.objects.get(id=id_arquivo_coletado)
     try:
@@ -297,7 +297,7 @@ def task_coletar_estab_pub(
                                 'ano':ano,
                                 'nome_arquivo_servidor':"RAIS_ESTAB_PUB.7z",
                             }
-                        )
+                        ).result
     
     arquivo = ArquivoColetado.objects.get(id=id_arquivo_coletado)
     try:
@@ -468,7 +468,7 @@ def task_coletar_caged_mov(
                                 'mes':mes,
                                 'nome_arquivo_servidor':f"CAGEDMOV",
                             }
-                        )
+                        ).result
     arquivo = ArquivoColetado.objects.get(id = id_arquivo_coletado)
     try:
         filtrar_caged(arquivo)
@@ -496,7 +496,7 @@ def task_coletar_caged_for(
                                     'mes':mes,
                                     'nome_arquivo_servidor':f"CAGEDFOR",
                                 }
-                            )
+                            ).result
     except Exception as e:
         if(str(e).startswith("550")): # arquivo não encontrado
             print(f"Arquivo CAGED FOR {ano}-{mes} não encontrado. Pulando etapa de coleta.")
@@ -530,7 +530,7 @@ def task_coletar_caged_exc(
                                     'mes':mes,
                                     'nome_arquivo_servidor':f"CAGEDEXC",
                                 }
-                            )
+                            ).result
     except Exception as e:
         if(str(e).startswith("550")): # arquivo não encontrado
             print(f"Arquivo CAGED EXC {ano}-{mes} não encontrado. Pulando etapa de coleta.")
