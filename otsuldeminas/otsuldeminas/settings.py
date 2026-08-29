@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'schema_viewer',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -153,4 +154,6 @@ REST_FRAMEWORK = {
     # ]
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+    # Define o drf-spectacular como gerador do schema OpenAPI
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
