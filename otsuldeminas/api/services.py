@@ -19,7 +19,7 @@ def get_municipio( codigo_ibge):
     except Municipio.DoesNotExist:
         raise Http404
 
-def qtd_estabelecimentos(codigo_ibge):
+def qtd_estabelecimentos_municipio(codigo_ibge):
     qtd_estabelecimentos = Estabelecimento.objects.filter(                           
         codigo_municipio_rf__codigo_ibge = codigo_ibge,
         situacao_cadastral="02"
@@ -109,7 +109,7 @@ def resgatar_saldo(codigos_ibge:list = None, data_inicio:str = None, data_fim:st
     
     
      
-def qtd_Estabelecimentos_CSV():
+def qtd_Estabelecimentos():
     
     #renderer_classes = [JSONRenderer, CSVRenderer]
 
@@ -138,7 +138,7 @@ def qtd_Estabelecimentos_CSV():
             return CSVExporterResumo.export(out, "estabelecimentos.csv")
         return Response(out)
         
-def funcionarios_por_municipio_por_cnae_csv():
+def funcionarios_por_municipio_por_cnae():
     
     data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
     data_mais_recente_caged = SaldoMensalCaged.objects.aggregate(Max("referencia"))["referencia__max"]
@@ -184,7 +184,7 @@ def funcionarios_por_municipio_por_cnae_csv():
     
     return resposta
 
-def postos_de_trabalho_csv():
+def postos_de_trabalho():
     data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
     saldos_rais = SaldoMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
     cageds = SaldoMensalCaged.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais).order_by("referencia")
@@ -218,7 +218,7 @@ def postos_de_trabalho_csv():
             
     return data
 
-def estoque_acumulado_csv():
+def estoque_acumulado():
     
     estoques = EstoqueMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
     

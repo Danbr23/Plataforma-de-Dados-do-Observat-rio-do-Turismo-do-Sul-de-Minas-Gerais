@@ -1,3 +1,5 @@
+from urllib import response
+
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -48,24 +50,46 @@ class SaldoMensalView(APIView):
         #serializer = SaldoMensalSerializer(saldos, many=True)
         return Response(saldos)
 
-class EstabelecimentosCSV(APIView):
+class Estabelecimentos(APIView):
     
     def get(self,request):
-        response = qtd_Estabelecimentos_CSV()
-        return CSVExporterResumo.export(response,"estabelecimentos.csv")
+        data = qtd_Estabelecimentos()
+        formato = request.query_params.get("export", "json").lower()
+        if formato == "csv":
+            return CSVExporterResumo.export(data,"estabelecimentos.csv")
+        return Response(data)
 
-class FuncionariosCSV(APIView):
+class Funcionarios(APIView):
     
     def get(self,request):
-        response = funcionarios_por_municipio_por_cnae_csv()
-        return CSVExporterResumo.export(response,"funcionarios.csv")
+        data = funcionarios_por_municipio_por_cnae()
+        formato = request.query_params.get("export", "json").lower()
+        if formato == "csv":
+            return CSVExporterResumo.export(data,"funcionarios.csv")
+        return Response(data)
 
-class PostosDeTrabalhoCSV(APIView):
+class PostosDeTrabalho(APIView):
     def get(self,request):
-        response = postos_de_trabalho_csv()
-        return CSVExporterTemporalSaldo.export(response,"postos.csv")
+        data = postos_de_trabalho()
+        # 2. Verifica se o usuário pediu CSV explicitamente via query param
+        formato = request.query_params.get("export", "json").lower()
+        
+        if formato == "csv":
+            # Retorna o arquivo CSV usando a sua classe existente
+            return CSVExporterTemporalSaldo.export(data, "postos.csv")
+            
+        # 3. Padrão: retorna JSON
+        return Response(data)
     
-class EstoqueAcumuladoCSV(APIView):
+class EstoqueAcumulado(APIView):
     def get(self,request):
-        response = estoque_acumulado_csv()
-        return CSVExporterTemporalEstoque.export(response,"estoque_acumulado.csv")
+        data = estoque_acumulado()
+        # 2. Verifica se o usuário pediu CSV explicitamente via query param
+        formato = request.query_params.get("export", "json").lower()
+
+        if formato == "csv":
+            # Retorna o arquivo CSV usando a sua classe existente
+            return CSVExporterTemporalEstoque.export(data, "estoque_acumulado.csv")
+
+        # 3. Padrão: retorna JSON
+        return Response(data)
