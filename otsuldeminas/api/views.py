@@ -229,6 +229,87 @@ class PostosDeTrabalho(APIView):
             return CSVExporterTemporalSaldo.export(data, nome_arquivo)
             
         return Response(data)
+
+class PostosDeTrabalhoPaginado(APIView):
+    
+    @extend_schema(
+        summary="Postos de Trabalho Paginado",
+        description="Retorna o saldo mensal agrupado. Os dados JSON são paginados por município para não travar o navegador.",
+        parameters=[
+            OpenApiParameter(name='page', description='Número da página (padrão: 1)', required=False, type=int),
+            OpenApiParameter(name='export', description='Formato de exportação (json ou csv)', required=False, type=str),
+            # OpenApiParameter(name='tudo', description='Ignora a paginação e retorna todo o JSON de uma vez', required=False, type=OpenApiTypes.BOOL),
+        ],
+        responses={
+                    # Documentando o código 200 de sucesso com um exemplo real
+                    200: OpenApiResponse(
+                        response=OpenApiTypes.OBJECT,
+                        description="Retorna o dicionário aninhado com os saldos (JSON) ou inicia o download do arquivo (CSV).",
+                        examples=[
+                            OpenApiExample(
+                                name="Estrutura do JSON retornado",
+                                summary="Exemplo de JSON",
+                                value={
+                                     "count": 146,
+                                    "next": "http://localhost:8000/api/postos_de_trabalho_paginado/?page=4",
+                                    "previous": "http://localhost:8000/api/postos_de_trabalho_paginado/?page=2",
+                                    "results": {
+                                        "Caldas": {
+                                            "Hospedagem": {
+                                                "2021": [
+                                                    {
+                                                        "mes": 1,
+                                                        "saldo": 1
+                                                    },
+                                                    {
+                                                        "mes": 2,
+                                                        "saldo": 0
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }  
+                                }
+                            )
+                        ]
+                    ),
+                    404: OpenApiResponse(
+                        description="Página não encontrada.",
+                        response=OpenApiTypes.OBJECT,
+                        examples=[OpenApiExample(name="Erro 404", value={"detail": "Invalid page."})]
+                    ),
+                },
+                tags =['Postos de Trabalho'] # Agrupa os endpoints no menu lateral do Swagger
+    )
+    def get(self, request):
+        # 1. Carrega o dicionário gigante na memória
+        data = postos_de_trabalho()
+        
+        # 2. Verifica se o usuário pediu CSV explicitamente
+        formato = request.query_params.get("export", "json").lower()
+        if formato == "csv":
+            # Retorna o arquivo CSV (sempre completo, não faz sentido paginar CSV)
+            return CSVExporterTemporalSaldo.export(data, "postos.csv")
+            
+        # 3. Verifica se pediu o JSON completo explicitamente
+        # if request.query_params.get("tudo") == "true":
+        #     return Response(data)
+
+        # 4. PAGINAÇÃO MANUAL DO DICIONÁRIO
+        paginator = PageNumberPagination()
+        paginator.page_size = 1    # Retorna um município por vez (ajuste como achar melhor)
+        
+        # Transforma o dict em uma lista de tuplas: [('Mun A', {...}), ('Mun B', {...})]
+        lista_municipios = sorted(data.items(), key=lambda item: item[0])
+        
+        # Passa a lista para o paginador do DRF fatiar a página atual
+        pagina_atual = paginator.paginate_queryset(lista_municipios, request, view=self)
+        
+        # Transforma a lista fatiada (da página atual) de volta em um dicionário
+        dados_paginados = dict(pagina_atual)
+        
+        # Retorna no padrão DRF, que inclui os links de 'next' e 'previous'
+        return paginator.get_paginated_response(dados_paginados)
     
 class EstoqueAcumulado(APIView):
     @extend_schema(
@@ -307,6 +388,85 @@ class EstoqueAcumulado(APIView):
             return CSVExporterTemporalEstoque.export(data, nome_arquivo)
             
         return Response(data)
+
+class EstoqueAcumuladoPaginado(APIView):
+    @extend_schema(
+            summary="Estoque Acumulado",
+            description='''"Retorna o estoque acumulado. Os dados JSON são paginados por município para não travar o navegador.''',
+            parameters=[
+                OpenApiParameter(name='page', description='Número da página (padrão: 1)', required=False, type=int),
+                OpenApiParameter(name='export', description='Formato (json ou csv)', required=False, type=str),
+            ],
+            responses={
+                # Documentando o código 200 de sucesso com um exemplo real
+                200: OpenApiResponse(
+                    response=OpenApiTypes.OBJECT,
+                    description="Retorna o dicionário aninhado com os estoques (JSON) ou inicia o download do arquivo (CSV).",
+                    examples=[
+                        OpenApiExample(
+                            name="Estrutura do JSON retornado",
+                            summary="Exemplo de JSON",
+                            value={
+                                    "count": 146,
+                                "next": "http://localhost:8000/api/postos_de_trabalho_paginado/?page=4",
+                                "previous": "http://localhost:8000/api/postos_de_trabalho_paginado/?page=2",
+                                "results": {
+                                    "Caldas": {
+                                        "Hospedagem": {
+                                            "2021": [
+                                                {
+                                                    "mes": 1,
+                                                    "estoque": 1
+                                                },
+                                                {
+                                                    "mes": 2,
+                                                    "estoque": 0
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }  
+                            }
+                        )
+                    ]
+                ),
+                404: OpenApiResponse(
+                    description="Página não encontrada.",
+                    response=OpenApiTypes.OBJECT,
+                    examples=[OpenApiExample(name="Erro 404", value={"detail": "Invalid page."})]
+                ),
+            },
+            tags =['Estoque Acumulado'] # Agrupa os endpoints no menu lateral do Swagger
+        )
+    def get(self,request):
+                
+        # 3. Busca os dados (agora a função aceita tanto um código quanto None)
+        data = estoque_acumulado()
+        
+        # 4. Retorno dinâmico
+        formato = request.query_params.get("export", "json").lower()
+        if formato == "csv":
+            return CSVExporterTemporalEstoque.export(data, "estoques.csv")
+            
+        # 3. Verifica se pediu o JSON completo explicitamente
+        # if request.query_params.get("tudo") == "true":
+        #     return Response(data)
+
+        # 4. PAGINAÇÃO MANUAL DO DICIONÁRIO
+        paginator = PageNumberPagination()
+        paginator.page_size = 1    # Retorna um município por vez (ajuste como achar melhor)
+        
+        # Transforma o dict em uma lista de tuplas: [('Mun A', {...}), ('Mun B', {...})]
+        lista_municipios = sorted(data.items(), key=lambda item: item[0])
+        
+        # Passa a lista para o paginador do DRF fatiar a página atual
+        pagina_atual = paginator.paginate_queryset(lista_municipios, request, view=self)
+        
+        # Transforma a lista fatiada (da página atual) de volta em um dicionário
+        dados_paginados = dict(pagina_atual)
+        
+        # Retorna no padrão DRF, que inclui os links de 'next' e 'previous'
+        return paginator.get_paginated_response(dados_paginados)
     
 
 # class SaldoMensalView(APIView):

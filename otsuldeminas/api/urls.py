@@ -11,7 +11,9 @@ urlpatterns = [
     path("estabelecimentos/", Estabelecimentos.as_view()),
     path("funcionarios/",Funcionarios.as_view()),
     path("postos_de_trabalho/",PostosDeTrabalho.as_view()),
+    path("postos_de_trabalho_paginado/", PostosDeTrabalhoPaginado.as_view()),
     path("estoque_acumulado/", EstoqueAcumulado.as_view()),
+    path("estoque_acumulado_paginado/", EstoqueAcumuladoPaginado.as_view()),
     
     # Rota para baixar o schema YAML/JSON
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
