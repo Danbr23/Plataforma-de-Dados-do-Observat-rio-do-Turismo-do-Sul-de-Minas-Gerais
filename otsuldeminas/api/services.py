@@ -184,12 +184,22 @@ def funcionarios_por_municipio_por_cnae():
     
     return resposta
 
-def postos_de_trabalho():
+def postos_de_trabalho(codigo_ibge=None):
     data_mais_recente_rais = EstoqueAnual.objects.aggregate(Max("referencia"))["referencia__max"]
+    
+    # Monta as queries base
     saldos_rais = SaldoMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
-    cageds = SaldoMensalCaged.objects.select_related("municipio","cnae").filter(referencia__gt=data_mais_recente_rais).order_by("referencia")
+    cageds = SaldoMensalCaged.objects.select_related("municipio", "cnae").filter(
+        referencia__gt=data_mais_recente_rais
+    ).order_by("referencia")
+    
+    # Aplica o filtro de município APENAS se o código foi passado
+    if codigo_ibge:
+        saldos_rais = saldos_rais.filter(municipio__codigo_ibge=codigo_ibge)
+        cageds = cageds.filter(municipio__codigo_ibge=codigo_ibge)
     
     agregados = {}
+    
     for row in saldos_rais:
         nome = row.municipio.nome
         classificacao = row.cnae.classificacao_otmg or "Outros"
@@ -218,9 +228,12 @@ def postos_de_trabalho():
             
     return data
 
-def estoque_acumulado():
+def estoque_acumulado(codigo_ibge=None):
     
     estoques = EstoqueMensal.objects.select_related("municipio", "cnae").all().order_by("referencia")
+    
+    if codigo_ibge:
+        estoques = estoques.filter(municipio__codigo_ibge=codigo_ibge)
     
     agregados = {}
     for row in estoques:
