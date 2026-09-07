@@ -39,4 +39,5 @@ dependencies = [
     "charset-normalizer>=3.4.3",
     "django-schema-viewer>=0.5.3",
     "drf-spectacular>=0.30.0",
+    "django-unfold>=0.105.0",
 ]
