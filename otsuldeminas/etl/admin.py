@@ -1,9 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin 
 from .models import ArquivoColetado
 
 # Register your models here.
+#admin.site.unregister(ArquivoColetado)
 @admin.register(ArquivoColetado)
-class ArquivoColetadoAdmin(admin.ModelAdmin):
+class ArquivoColetadoAdmin(ModelAdmin):
     list_display = ("nome", "ano", "mes", "status", "linhas_filtradas", "bytes", "short_msg")
     list_filter = ("status", "ano", "mes")
     search_fields = ("url", "path", "ano", "mes")

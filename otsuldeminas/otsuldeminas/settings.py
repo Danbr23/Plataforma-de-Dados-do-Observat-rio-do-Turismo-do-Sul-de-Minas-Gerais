@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from django.templatetags.static import static
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -132,8 +133,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles" 
+
+# Pastas ADICIONAIS onde Django vai buscar arquivos estáticos (desenvolvimento)
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # ← Sua pasta global de estáticos
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -158,5 +164,42 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,
     # Define o drf-spectacular como gerador do schema OpenAPI
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+UNFOLD = {
+    "SITE_TITLE": "Plataforma de Engenharia de Dados OTSULDEMINAS",
+    "SITE_HEADER": "Eng. OTSULDEMINAS",
+    "SITE_URL": "/",
+    
+    "COLORS": {
+        "primary": {
+            50: "240 253 244",    # #f0fdf4
+            100: "220 252 231",   # #dcfce7
+            200: "187 247 208",   # #bbf7d0
+            300: "134 239 172",   # #86efac
+            400: "74 222 128",    # #4ade80
+            500: "0 156 59",      # **Verde bandeira #009c3b**
+            600: "0 130 50",      # #008232
+            700: "0 100 40",      # #006428
+            800: "0 75 30",       # #004b1e
+            900: "0 55 22",       # #003716
+            950: "0 35 14",       # #00230e
+        },
+    },
+    
+    # ✅ CERTO (usando static())
+    "SITE_ICON": {
+        "light": lambda request: static("img/logo.png"),
+        "dark": lambda request: static("img/logo.png"),
+    },
+    
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "sizes": "any",  # ou "32x32", "16x16", etc.
+            "type": "image/png",
+            "href": lambda request: static("img/logo.png"),
+        },
+    ],
 }
 
