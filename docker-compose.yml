@@ -47,6 +47,9 @@ services:
     env_file: .env
     volumes:
       - .:/app
+      - /app/.venv      # <-- ADICIONE ESTA LINHA (Isola o venv)
+    environment:
+    - UV_LINK_MODE=copy # <-- ADICIONE ESTA LINHA (Resolve o alerta amarelo do log)
     ports:
       - "8000:8000"
 #    environment:
@@ -73,6 +76,9 @@ services:
     env_file: .env
     volumes:
       - .:/app
+      - /app/.venv      # <-- ADICIONE ESTA LINHA (Isola o venv)
+    environment:
+    - UV_LINK_MODE=copy # <-- ADICIONE ESTA LINHA (Resolve o alerta amarelo do log)
 #    environment:
 #      PYTHONDONTWRITEBYTECODE: 1 Ja esta setado no Dockerfile
 #      PYTHONUNBUFFERED: 1
@@ -96,6 +102,9 @@ services:
     env_file: .env
     volumes:
       - .:/app
+      - /app/.venv      # <-- ADICIONE ESTA LINHA (Isola o venv)
+    environment:
+      - UV_LINK_MODE=copy # <-- ADICIONE ESTA LINHA (Resolve o alerta amarelo do log)
 #    environment:
 #      PYTHONDONTWRITEBYTECODE: 1 Ja esta setado no Dockerfile
 #      PYTHONUNBUFFERED: 1

@@ -1,4 +1,5 @@
 import os
+import environ
 """
 Django settings for otsuldeminas project.
 
@@ -17,17 +18,27 @@ from django.templatetags.static import static
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# 2. Inicializa o environ
+env = environ.Env(
+    # Define um valor padrão caso a variável não seja encontrada
+    DEBUG=(bool, False)
+)
+
+# 3. Lê o arquivo .env
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+#SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
+SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True") == "True"
+#DEBUG = os.getenv("DEBUG", "True") == "True"
+DEBUG = env('DEBUG')
 
-
-ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 
 
 # Application definition
@@ -166,6 +177,8 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
 UNFOLD = {
     "SITE_TITLE": "Plataforma de Engenharia de Dados OTSULDEMINAS",
     "SITE_HEADER": "Eng. OTSULDEMINAS",
@@ -203,3 +216,5 @@ UNFOLD = {
     ],
 }
 
+#print("CAMINHO DO BASE_DIR:", BASE_DIR)
+#print("VALOR DO ALLOWED_HOSTS:", ALLOWED_HOSTS)
